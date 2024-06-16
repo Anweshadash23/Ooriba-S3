@@ -23,6 +23,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final _residentialAddress = TextEditingController();
   final _permanentAddress = TextEditingController();
   final _password = TextEditingController();
+  final _aadharNo = TextEditingController();
   File? dpImage, supportImage, adhaarImage;
   final EmployeeService _employeeService = EmployeeService();
 
@@ -56,6 +57,7 @@ class _SignUpPageState extends State<SignUpPage> {
       final perAdd = _permanentAddress.text;
       final phoneNo = _phoneNumber.text;
       final dob = DateFormat.yMd().format(_dob!);
+      final aadharNo = _aadharNo.text;
 
       // Ensure all images are selected
       if (dpImage == null || adhaarImage == null || supportImage == null) {
@@ -76,6 +78,7 @@ class _SignUpPageState extends State<SignUpPage> {
         perAdd,
         phoneNo,
         dob,
+        aadharNo,
         dpImage!,
         adhaarImage!,
         supportImage!,
@@ -291,7 +294,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           }
                           if (!RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$')
                               .hasMatch(value)) {
-                            return 'Please enter a valid PAN number';
+                            return 'Invalid PAN number format';
                           }
                           return null;
                         },
@@ -326,6 +329,23 @@ class _SignUpPageState extends State<SignUpPage> {
                           }
                           if (value.length > 100) {
                             return 'Permanent address cannot exceed 100 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _aadharNo,
+                        decoration: const InputDecoration(
+                          labelText: 'Aadhaar Number',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your Aadhaar number';
+                          }
+                          if (!RegExp(r'^[2-9]{1}[0-9]{11}$').hasMatch(value)) {
+                            return 'Invalid Aadhaar number';
                           }
                           return null;
                         },

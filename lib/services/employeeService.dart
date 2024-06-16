@@ -8,20 +8,22 @@ class EmployeeService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   Future<void> addEmployee(
-      String firstName,
-      String middleName,
-      String lastName,
-      String email,
-      String password,
-      String panNo,
-      String resAdd,
-      String perAdd,
-      String phoneNo,
-      String dob,
-      File dpImage,
-      File adhaarImage,
-      File supportImage,
-      {required BuildContext context}) async {
+    String firstName,
+    String middleName,
+    String lastName,
+    String email,
+    String password,
+    String panNo,
+    String resAdd,
+    String perAdd,
+    String phoneNo,
+    String dob,
+    String aadharNo, // Add the aadharNo parameter
+    File dpImage,
+    File adhaarImage,
+    File supportImage, {
+    required BuildContext context,
+  }) async {
     try {
       // Upload images to Firebase Storage
       String dpImageUrl =
@@ -43,6 +45,7 @@ class EmployeeService {
         'permanentAddress': perAdd,
         'phoneNo': phoneNo,
         'dob': dob,
+        'aadharNo': aadharNo, // Add the aadharNo field
         'timestamp': FieldValue.serverTimestamp(),
         'dpImageUrl': dpImageUrl,
         'adhaarImageUrl': adhaarImageUrl,
