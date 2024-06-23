@@ -52,12 +52,16 @@ class _SignUpPageState extends State<SignUpPage> {
       final lastName = _lastName.text;
       final email = _email.text;
       final password = _password.text;
-      final panNo = _panNo.text;
+      var panNo = _panNo.text;
       final resAdd = _residentialAddress.text;
       final perAdd = _permanentAddress.text;
       final phoneNo = _phoneNumber.text;
       final dob = DateFormat.yMd().format(_dob!);
-      final aadharNo = _aadharNo.text;
+      var aadharNo = _aadharNo.text
+          .replaceAll(' ', ''); // Remove spaces from Aadhaar number
+
+      // Convert PAN number to uppercase
+      panNo = panNo.toUpperCase();
 
       // Ensure all images are selected
       if (dpImage == null || adhaarImage == null || supportImage == null) {
@@ -85,8 +89,9 @@ class _SignUpPageState extends State<SignUpPage> {
         context: context,
       );
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Signed up successfully')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Signed up successfully')),
+      );
     }
   }
 
@@ -198,7 +203,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           if (!RegExp(
                                   r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$')
                               .hasMatch(value)) {
-                            return 'Please enter a valid email';
+                            return 'Please enter a valid email address';
                           }
                           return null;
                         },
@@ -216,67 +221,9 @@ class _SignUpPageState extends State<SignUpPage> {
                             return 'Please enter your password';
                           }
                           if (!RegExp(
-                                  r'^(?=.*[A-Z])(?=.*[!@#$&*])(?=.*[0-9]).{8,}$')
+                                  r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$')
                               .hasMatch(value)) {
-                            return 'Password must contain at least one uppercase letter, one symbol, and one number';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        controller: _phoneNumber,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone Number',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your phone number';
-                          }
-                          if (!RegExp(r'^\d{10}$').hasMatch(value)) {
-                            return 'Phone number must be exactly 10 digits';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'Date of Birth',
-                          border: OutlineInputBorder(),
-                        ),
-                        readOnly: true,
-                        onTap: () async {
-                          DateTime? pickedDate = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime(1900),
-                            lastDate: DateTime(2100),
-                          );
-                          if (pickedDate != null) {
-                            final age = DateTime.now().year - pickedDate.year;
-                            if (age < 18) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(
-                                        'You must be at least 18 years old')),
-                              );
-                              return;
-                            }
-                            setState(() {
-                              _dob = pickedDate;
-                            });
-                          }
-                        },
-                        controller: TextEditingController(
-                          text: _dob != null
-                              ? "${_dob!.day}/${_dob!.month}/${_dob!.year}"
-                              : '',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select your date of birth';
+                            return 'should contain uppercase,number,special character';
                           }
                           return null;
                         },
@@ -285,19 +232,74 @@ class _SignUpPageState extends State<SignUpPage> {
                       TextFormField(
                         controller: _panNo,
                         decoration: const InputDecoration(
-                          labelText: 'Pan Number',
+                          labelText: 'PAN Number',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your PAN number';
                           }
-                          if (!RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$')
-                              .hasMatch(value)) {
-                            return 'Invalid PAN number format';
+                          if (value.length != 10) {
+                            return 'PAN number must be exactly 10 characters';
+                          }
+                          if (RegExp(r'[^a-zA-Z0-9]').hasMatch(value)) {
+                            return 'PAN number can only contain letters and digits';
                           }
                           return null;
                         },
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _aadharNo,
+                        decoration: const InputDecoration(
+                          labelText: 'Aadhaar Number',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your Aadhaar number';
+                          }
+                          if (value.length != 12 &&
+                              value.replaceAll(' ', '').length != 12) {
+                            return 'Aadhaar number must be exactly 12 digits';
+                          }
+                          if (RegExp(r'[^0-9\s]').hasMatch(value)) {
+                            return 'Aadhaar number can only contain digits and spaces';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      GestureDetector(
+                        onTap: () async {
+                          DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              _dob = picked;
+                            });
+                          }
+                        },
+                        child: AbsorbPointer(
+                          child: TextFormField(
+                            decoration: InputDecoration(
+                              labelText: _dob == null
+                                  ? 'Date of Birth'
+                                  : DateFormat.yMd().format(_dob!),
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if (_dob == null) {
+                                return 'Please select your date of birth';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
@@ -311,7 +313,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             return 'Please enter your residential address';
                           }
                           if (value.length > 100) {
-                            return 'Residential address cannot exceed 100 characters';
+                            return 'Address cannot exceed 100 characters';
                           }
                           return null;
                         },
@@ -328,52 +330,55 @@ class _SignUpPageState extends State<SignUpPage> {
                             return 'Please enter your permanent address';
                           }
                           if (value.length > 100) {
-                            return 'Permanent address cannot exceed 100 characters';
+                            return 'Address cannot exceed 100 characters';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
-                        controller: _aadharNo,
+                        controller: _phoneNumber,
                         decoration: const InputDecoration(
-                          labelText: 'Aadhaar Number',
+                          labelText: 'Phone Number',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your Aadhaar number';
+                            return 'Please enter your phone number';
                           }
-                          if (!RegExp(r'^[2-9]{1}[0-9]{11}$').hasMatch(value)) {
-                            return 'Invalid Aadhaar number';
+                          if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
+                            return 'Phone number must be exactly 10 digits';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () => _pickImage(1),
-                        child: const Text('Upload Adhaar Card Copy'),
+                        onPressed: () => _pickImage(2),
+                        child: const Text('Upload DP Image'),
                       ),
-                      adhaarImage == null
-                          ? const Text('No Adhaar Card Copy Uploaded.')
-                          : Image.file(adhaarImage!, height: 100, width: 100),
+                      const SizedBox(height: 10),
+                      dpImage == null
+                          ? const Text('No image selected.')
+                          : Image.file(dpImage!),
                       const SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () => _pickImage(2),
-                        child: const Text('Upload Profile Picture'),
+                        onPressed: () => _pickImage(1),
+                        child: const Text('Upload Aadhaar Image'),
                       ),
-                      dpImage == null
-                          ? const Text('No profile picture selected.')
-                          : Image.file(dpImage!, height: 100, width: 100),
+                      const SizedBox(height: 10),
+                      adhaarImage == null
+                          ? const Text('No image selected.')
+                          : Image.file(adhaarImage!),
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () => _pickImage(3),
-                        child: const Text('Upload Supporting Document'),
+                        child: const Text('Upload Supporting Image'),
                       ),
+                      const SizedBox(height: 10),
                       supportImage == null
-                          ? const Text('No Document selected.')
-                          : Image.file(supportImage!, height: 100, width: 100),
+                          ? const Text('No image selected.')
+                          : Image.file(supportImage!),
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: _submitForm,

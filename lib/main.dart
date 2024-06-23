@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:ooriba/firebase_options.dart';
 import 'package:ooriba/hr_dashboard_page.dart';
-import 'package:ooriba/hr_login_page.dart';
+// import 'package:ooriba/hr_login_page.dart';
 import 'package:ooriba/services/auth_service.dart';
 import 'package:ooriba/services/dark_mode.dart';
 import 'package:ooriba/signup_page.dart';
@@ -97,7 +97,6 @@ class LoginPage extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
-                        // ......................................
                         const Text(
                           'Welcome To OORIBA-S3',
                           style: TextStyle(
@@ -128,10 +127,8 @@ class LoginPage extends StatelessWidget {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                //.........................................................................
                                 MaterialPageRoute(
                                     builder: (context) => HRDashboardPage()),
-                                //   MaterialPageRoute(builder: (context) =>LLMyHomePage(cameras: cameras!) ),
                               );
                             },
                             child: const Text('Forgot Password'),
@@ -143,7 +140,6 @@ class LoginPage extends StatelessWidget {
                             await AuthService().signin(
                                 email: _emailController.text,
                                 password: _passwordController.text,
-                                role: "employee",
                                 context: context);
                           },
                           child: const Text('Sign In'),
@@ -151,7 +147,6 @@ class LoginPage extends StatelessWidget {
                         const SizedBox(height: 20),
                         RichText(
                           text: TextSpan(
-                            //..........................................................
                             text: "Don't have an account? ",
                             style: TextStyle(
                                 color: Theme.of(context)
@@ -178,16 +173,16 @@ class LoginPage extends StatelessWidget {
                             ],
                           ),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const HRLoginPage()),
-                            );
-                          },
-                          child: const Text('HR sign-in here'),
-                        ),
+                        // TextButton(
+                        //   onPressed: () {
+                        //     Navigator.push(
+                        //       context,
+                        //       MaterialPageRoute(
+                        //           builder: (context) => const HRLoginPage()),
+                        //     );
+                        //   },
+                        //   child: const Text('HR sign-in here'),
+                        // ),
                       ],
                     ),
                   ),

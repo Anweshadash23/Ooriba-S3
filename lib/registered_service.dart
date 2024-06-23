@@ -6,6 +6,11 @@ class RegisteredService {
   Future<void> registerEmployee(
       String email, Map<String, dynamic> employeeData) async {
     try {
+      // Convert PAN to uppercase and remove spaces from Aadhaar before storing
+      employeeData['panNo'] = (employeeData['panNo'] as String).toUpperCase();
+      employeeData['aadharNo'] =
+          (employeeData['aadharNo'] as String).replaceAll(' ', '');
+
       // Store in 'Regemp' collection
       await _firestore.collection('Regemp').doc(email).set({
         ...employeeData,

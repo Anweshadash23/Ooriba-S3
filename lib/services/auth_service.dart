@@ -1,31 +1,26 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ooriba/employee_checkin_page.dart';
-import 'package:ooriba/hr_dashboard_page.dart';
-import 'package:ooriba/services/retrieveDataByEmail.dart';
 import 'package:ooriba/employee_signup_success.dart';
+import 'package:ooriba/hr_dashboard_page.dart';
 import 'package:ooriba/main.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
   Future<void> signup({
     required String email,
     required String password,
     required BuildContext context,
   }) async {
     try {
-      await _auth.createUserWithEmailAndPassword(
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Simulate a delay
       await Future.delayed(const Duration(seconds: 1));
-
-      // Navigate to the confirmation page
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => ConfirmationPage()),
       );
@@ -35,8 +30,6 @@ class AuthService {
         message = 'The password provided is too weak.';
       } else if (e.code == 'email-already-in-use') {
         message = 'An account already exists with that email.';
-      } else {
-        message = 'An error occurred. Please try again.';
       }
       Fluttertoast.showToast(
         msg: message,
@@ -46,66 +39,79 @@ class AuthService {
         textColor: Colors.white,
         fontSize: 14.0,
       );
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: 'An error occurred. Please try again.',
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.SNACKBAR,
-        backgroundColor: Colors.black54,
-        textColor: Colors.white,
-        fontSize: 14.0,
-      );
     }
   }
 
-  Future<void> signin({
+  Future<bool> signin({
     required String email,
     required String password,
-    required String role,
     required BuildContext context,
   }) async {
-    final FirestoreService firestoreService = FirestoreService();
-    Map<String, dynamic>? employeeData =
-        await firestoreService.searchEmployee(email: email);
-
     try {
-      await _auth.signInWithEmailAndPassword(
+      // Sign in the user
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Simulate a delay
-      await Future.delayed(const Duration(seconds: 1));
+      // Retrieve the role from Firestore
+      DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
+          .collection('Regemp')
+          .doc(email)
+          .get();
 
-      // Navigate based on role
-      if (role == "employee") {
-        String firstName =
-            employeeData != null ? employeeData['firstName'] ?? '' : '';
+      if (!documentSnapshot.exists) {
+        Fluttertoast.showToast(
+          msg: 'No user found for that email.',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.SNACKBAR,
+          backgroundColor: Colors.black54,
+          textColor: Colors.white,
+          fontSize: 14.0,
+        );
+        return false;
+      }
+
+      Map<String, dynamic> userData =
+          documentSnapshot.data() as Map<String, dynamic>;
+      String role = userData['role'] ?? '';
+
+      await Future.delayed(const Duration(seconds: 1));
+      if (role == 'Employee') {
+        String firstName = userData['firstName'] ?? '';
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (BuildContext context) => EmployeeCheckInPage(
-              empname: firstName,
-              empemail: email,
-            ),
+            builder: (BuildContext context) =>
+                EmployeeCheckInPage(empname: firstName, empemail: email),
           ),
         );
-      } else {
+      } else if (role == 'HR') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (BuildContext context) => const HRDashboardPage(),
           ),
         );
+      } else {
+        Fluttertoast.showToast(
+          msg: 'Invalid role for the user.',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.SNACKBAR,
+          backgroundColor: Colors.black54,
+          textColor: Colors.white,
+          fontSize: 14.0,
+        );
+        return false;
       }
+
+      return true;
     } on FirebaseAuthException catch (e) {
       String message = '';
-      if (e.code == 'user-not-found') {
+      if (e.code == 'invalid-email') {
         message = 'No user found for that email.';
-      } else if (e.code == 'wrong-password') {
+      } else if (e.code == 'invalid-credential') {
         message = 'Wrong password provided for that user.';
-      } else {
-        message = 'An error occurred. Please try again.';
       }
       Fluttertoast.showToast(
         msg: message,
@@ -115,38 +121,20 @@ class AuthService {
         textColor: Colors.white,
         fontSize: 14.0,
       );
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: 'An error occurred. Please try again.',
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.SNACKBAR,
-        backgroundColor: Colors.black54,
-        textColor: Colors.white,
-        fontSize: 14.0,
-      );
+      return false;
     }
   }
 
-  Future<void> signout({required BuildContext context}) async {
-    try {
-      await _auth.signOut();
-
-      // Simulate a delay
-      await Future.delayed(const Duration(seconds: 1));
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (BuildContext context) => LoginPage()),
-      );
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: 'An error occurred while signing out. Please try again.',
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.SNACKBAR,
-        backgroundColor: Colors.black54,
-        textColor: Colors.white,
-        fontSize: 14.0,
-      );
-    }
+  Future<void> signout({
+    required BuildContext context,
+  }) async {
+    await FirebaseAuth.instance.signOut();
+    await Future.delayed(const Duration(seconds: 1));
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => LoginPage(),
+      ),
+    );
   }
 }

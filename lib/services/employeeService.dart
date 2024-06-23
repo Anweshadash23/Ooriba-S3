@@ -12,24 +12,29 @@ class EmployeeService {
     String middleName,
     String lastName,
     String email,
-    String password,
+    String password, // Added password parameter
     String panNo,
     String resAdd,
     String perAdd,
     String phoneNo,
     String dob,
-    String aadharNo, // Add the aadharNo parameter
+    String aadharNo,
     File dpImage,
     File adhaarImage,
     File supportImage, {
     required BuildContext context,
   }) async {
     try {
+      // Remove spaces from Aadhaar number
+      aadharNo = aadharNo.replaceAll(' ', '');
+      // Convert PAN number to uppercase
+      panNo = panNo.toUpperCase();
+
       // Upload images to Firebase Storage
       String dpImageUrl =
           await _uploadImage(dpImage, 'profile_pictures/$email');
       String adhaarImageUrl =
-          await _uploadImage(adhaarImage, 'adhaar_cards/$email');
+          await _uploadImage(adhaarImage, 'aadhaar_cards/$email');
       String supportImageUrl =
           await _uploadImage(supportImage, 'supporting_documents/$email');
 
@@ -39,13 +44,13 @@ class EmployeeService {
         'middleName': middleName,
         'lastName': lastName,
         'email': email,
-        'password': password,
+        'password': password, // Add password to employee data
         'panNo': panNo,
         'residentialAddress': resAdd,
         'permanentAddress': perAdd,
         'phoneNo': phoneNo,
         'dob': dob,
-        'aadharNo': aadharNo, // Add the aadharNo field
+        'aadharNo': aadharNo,
         'timestamp': FieldValue.serverTimestamp(),
         'dpImageUrl': dpImageUrl,
         'adhaarImageUrl': adhaarImageUrl,

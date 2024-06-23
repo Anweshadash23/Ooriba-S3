@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:ooriba/registered_service.dart';
-import 'package:ooriba/services/reject_service.dart';
+import 'registered_service.dart';
+import 'services/reject_service.dart';
+import 'employee_id_generator.dart';
 
 class EmployeeDetailsPage extends StatefulWidget {
   final Map<String, dynamic> employeeData;
@@ -18,6 +19,8 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   bool isAccepted = false;
   final RegisteredService _registeredService = RegisteredService();
   final RejectService _rejectService = RejectService();
+  final _formKey = GlobalKey<FormState>();
+  final EmployeeIdGenerator _idGenerator = EmployeeIdGenerator();
 
   @override
   void initState() {
@@ -32,32 +35,38 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   }
 
   void _saveDetails() async {
-    try {
-      print('Saving data: ${employeeData['email']} -> $employeeData');
-      await FirebaseFirestore.instance
-          .collection('Regemp')
-          .doc(employeeData['email'])
-          .set(employeeData);
+    if (_formKey.currentState!.validate()) {
+      try {
+        // Generate a new employee ID
+        final employeeId = await _idGenerator.generateEmployeeId();
+        employeeData['employeeId'] = employeeId;
 
-      // Delete the employee from the "Employee" collection
-      await FirebaseFirestore.instance
-          .collection('Employee')
-          .doc(employeeData['email'])
-          .delete();
+        print('Saving data: ${employeeData['email']} -> $employeeData');
+        await FirebaseFirestore.instance
+            .collection('Regemp')
+            .doc(employeeData['email'])
+            .set(employeeData);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                'Employee details updated and deleted from the Employee collection successfully')),
-      );
-      setState(() {
-        isEditing = false;
-      });
-    } catch (e) {
-      print('Error saving employee data: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update employee details: $e')),
-      );
+        // Delete the employee from the "Employee" collection
+        await FirebaseFirestore.instance
+            .collection('Employee')
+            .doc(employeeData['email'])
+            .delete();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'Employee details updated and deleted from the Employee collection successfully')),
+        );
+        setState(() {
+          isEditing = false;
+        });
+      } catch (e) {
+        print('Error saving employee data: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update employee details: $e')),
+        );
+      }
     }
   }
 
@@ -65,6 +74,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     setState(() {
       isAccepted = true;
       isEditing = true;
+      employeeData['status'] = 'Active'; // Set status to Active when accepted
     });
   }
 
@@ -140,7 +150,77 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     print('Changes rejected');
   }
 
-  Widget _buildDetailRow(String label, String key) {
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Email is required';
+    }
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+      return 'Enter a valid email address';
+    }
+    return null;
+  }
+
+  String? _validatePhoneNumber(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Phone number is required';
+    }
+    if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+      return 'Enter a valid 10-digit phone number';
+    }
+    return null;
+  }
+
+  String? _validateAadharNumber(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Aadhar number is required';
+    }
+    if (!RegExp(r'^\d{12}$').hasMatch(value)) {
+      return 'Enter a valid 12-digit Aadhar number';
+    }
+    return null;
+  }
+
+  String? _validatePanNumber(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'PAN number is required';
+    }
+    if (!RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$').hasMatch(value)) {
+      return 'Enter a valid PAN number';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters long';
+    }
+    return null;
+  }
+
+  String? _validateDateOfBirth(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Date of birth is required';
+    }
+    DateTime dob = DateTime.parse(value);
+    DateTime today = DateTime.now();
+    int age = today.year - dob.year;
+    if (today.month < dob.month ||
+        (today.month == dob.month && today.day < dob.day)) {
+      age--;
+    }
+    if (age < 18) {
+      return 'Age must be at least 18 years';
+    }
+    return null;
+  }
+
+  Widget _buildDetailRow(String label, String key,
+      {bool isNumber = false,
+      bool isEmail = false,
+      String? Function(String?)? validator}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -152,15 +232,80 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
           ),
           Expanded(
             child: isEditing
-                ? TextField(
+                ? TextFormField(
                     controller:
                         TextEditingController(text: employeeData[key] ?? ''),
                     onChanged: (newValue) {
                       employeeData[key] = newValue;
                     },
+                    keyboardType: isNumber
+                        ? TextInputType.number
+                        : isEmail
+                            ? TextInputType.emailAddress
+                            : TextInputType.text,
+                    validator: validator,
                   )
                 : Text(employeeData[key] ?? ''),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownRow(String label, String key, List<String> options) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            '$label: ',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: isEditing
+                ? DropdownButtonFormField<String>(
+                    value: employeeData[key],
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        employeeData[key] = newValue!;
+                      });
+                    },
+                    items:
+                        options.map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '$label is required';
+                      }
+                      return null;
+                    },
+                  )
+                : Text(employeeData[key] ?? ''),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategory(String title, List<Widget> children) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+                fontSize: 18.0,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline),
+          ),
+          Column(children: children),
         ],
       ),
     );
@@ -179,71 +324,152 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
             ),
         ],
       ),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _buildDetailRow('First Name', 'firstName'),
-                    _buildDetailRow('Middle Name', 'middleName'),
-                    _buildDetailRow('Last Name', 'lastName'),
-                    _buildDetailRow('Email', 'email'),
-                    _buildDetailRow('Phone Number', 'phoneNo'),
-                    _buildDetailRow('Date of Birth', 'dob'),
-                    _buildDetailRow('Permanent Address', 'permanentAddress'),
-                    _buildDetailRow(
-                        'Residential Address', 'residentialAddress'),
-                    _buildDetailRow('Adhaar URL', 'adhaarUrl'),
-                    _buildDetailRow('DP Image URL', 'dpImageUrl'),
-                    _buildDetailRow('Support URL', 'supportUrl'),
-                    // New fields
-                    _buildDetailRow('Department', 'department'),
-                    _buildDetailRow('Designation', 'designation'),
-                    _buildDetailRow('Employee Type', 'employeeType'),
-                    _buildDetailRow('Joining Date', 'joiningDate'),
-                    _buildDetailRow('Relocation Amount', 'relocationAmount'),
-                    _buildDetailRow('Bank Name', 'bankName'),
-                    _buildDetailRow('Account Number', 'accountNumber'),
-                    _buildDetailRow('IFSC Code', 'ifscCode'),
-                    _buildDetailRow('Location', 'location'),
-                    // Add more details as needed
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Container(
-            color: Colors.grey[200],
-            padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: <Widget>[
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                  ),
-                  onPressed: _rejectChanges,
-                  child: Text('Reject'),
-                ),
-                SizedBox(width: 10.0),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
-                  onPressed: isAccepted
-                      ? (isEditing ? _saveDetails : _toggleEdit)
-                      : _acceptDetails,
-                  child: Text(
-                      isAccepted ? (isEditing ? 'Save' : 'Edit') : 'Accept'),
-                ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: EdgeInsets.all(16.0),
+          children: <Widget>[
+            _buildCategory(
+              'Personal Information',
+              [
+                _buildDetailRow('First Name', 'firstName', validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'First name is required';
+                  }
+                  return null;
+                }),
+                _buildDetailRow('Middle Name', 'middleName'),
+                _buildDetailRow('Last Name', 'lastName', validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Last name is required';
+                  }
+                  return null;
+                }),
+                _buildDetailRow('Email', 'email',
+                    isEmail: true, validator: _validateEmail),
+                _buildDetailRow('Phone Number', 'phoneNo',
+                    isNumber: true, validator: _validatePhoneNumber),
+                _buildDetailRow('Date of Birth', 'dob',
+                    validator: _validateDateOfBirth),
+                _buildDetailRow('Permanent Address', 'permanentAddress',
+                    validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Permanent address is required';
+                  }
+                  return null;
+                }),
+                _buildDetailRow('Residential Address', 'residentialAddress',
+                    validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Residential address is required';
+                  }
+                  return null;
+                }),
+                _buildDetailRow('Aadhar Number', 'aadharNo',
+                    validator: _validateAadharNumber),
+                _buildDetailRow('PAN Number', 'panNo',
+                    validator: _validatePanNumber),
+                _buildDetailRow('DP Image URL', 'dpImageUrl'),
+                _buildDetailRow('Aadhar Image URL', 'aadharImageUrl'),
+                _buildDetailRow('Support URL', 'supportUrl'),
               ],
             ),
-          ),
-        ],
+            _buildCategory('Job Description', [
+              _buildDropdownRow('Department', 'department', [
+                'Sales',
+                'Services',
+                'Spares',
+                'Administration',
+                'Board of Directors'
+              ]),
+              _buildDropdownRow('Designation', 'designation', [
+                'Manager',
+                'Senior Engineer',
+                'Junior Engineer',
+                'Technician',
+                'Executive'
+              ]),
+              _buildDetailRow('Employee Type', 'employeeType',
+                  validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Employee type is required';
+                }
+                return null;
+              }),
+              _buildDetailRow('Joining Date', 'joiningDate',
+                  validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Joining date is required';
+                }
+                return null;
+              }),
+              _buildDropdownRow(
+                  'Location', 'location', ['Jaypur', 'Berhampur', 'Raigada']),
+            ]),
+            _buildCategory('Bank Details', [
+              _buildDetailRow('Bank Name', 'bankName', validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Bank name is required';
+                }
+                return null;
+              }),
+              _buildDetailRow('Account Number', 'accountNumber', isNumber: true,
+                  validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Account number is required';
+                }
+                if (!RegExp(r'^\d+$').hasMatch(value)) {
+                  return 'Enter a valid account number';
+                }
+                return null;
+              }),
+              _buildDetailRow('IFSC Code', 'ifscCode', validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'IFSC code is required';
+                }
+                return null;
+              }),
+            ]),
+            _buildCategory('Employee Status', [
+              _buildDropdownRow('Status', 'status', [
+                'Active',
+                'Inactive',
+                'On Hold',
+              ]),
+              _buildCategory('Role', [
+                _buildDropdownRow('Role', 'role', ['Employee', 'HR']),
+              ]),
+            ]),
+            // Add more details as needed
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        color: Colors.grey[200],
+        padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              onPressed: _rejectChanges,
+              child: Text('Reject'),
+            ),
+            SizedBox(width: 10.0),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+              ),
+              onPressed: isAccepted
+                  ? (isEditing ? _saveDetails : _toggleEdit)
+                  : _acceptDetails,
+              child:
+                  Text(isAccepted ? (isEditing ? 'Save' : 'Edit') : 'Accept'),
+            ),
+          ],
+        ),
       ),
     );
   }
