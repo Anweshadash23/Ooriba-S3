@@ -22,6 +22,14 @@ class _HRDashboardPageState extends State<HRDashboardPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('HR Dashboard'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async {
+              await AuthService().signout(context: context);
+            },
+          ),
+        ],
       ),
       drawer: Drawer(
         child: ListView(

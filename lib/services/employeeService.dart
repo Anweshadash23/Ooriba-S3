@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:ooriba/services/auth_service.dart';
 
 class EmployeeService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -12,7 +13,7 @@ class EmployeeService {
     String middleName,
     String lastName,
     String email,
-    String password, // Added password parameter
+    String password,
     String panNo,
     String resAdd,
     String perAdd,
@@ -44,7 +45,7 @@ class EmployeeService {
         'middleName': middleName,
         'lastName': lastName,
         'email': email,
-        'password': password, // Add password to employee data
+        'password': password,
         'panNo': panNo,
         'residentialAddress': resAdd,
         'permanentAddress': perAdd,

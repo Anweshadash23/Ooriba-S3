@@ -1,10 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ooriba/employee_checkin_page.dart';
-import 'package:ooriba/employee_signup_success.dart';
 import 'package:ooriba/hr_dashboard_page.dart';
+import 'package:ooriba/employee_signup_success.dart';
 import 'package:ooriba/main.dart';
 
 class AuthService {
@@ -48,18 +48,14 @@ class AuthService {
     required BuildContext context,
   }) async {
     try {
-      // Sign in the user
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      // Fetch the document from the Firestore collection "Regemp"
+      DocumentSnapshot<Map<String, dynamic>> documentSnapshot =
+          await FirebaseFirestore.instance
+              .collection('Regemp')
+              .doc(email)
+              .get();
 
-      // Retrieve the role from Firestore
-      DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
-          .collection('Regemp')
-          .doc(email)
-          .get();
-
+      // Check if the document exists
       if (!documentSnapshot.exists) {
         Fluttertoast.showToast(
           msg: 'No user found for that email.',
@@ -72,13 +68,19 @@ class AuthService {
         return false;
       }
 
-      Map<String, dynamic> userData =
-          documentSnapshot.data() as Map<String, dynamic>;
-      String role = userData['role'] ?? '';
+      // Retrieve the role from the document
+      String role = documentSnapshot.data()?['role'] ?? '';
 
+      // Sign in with Firebase Authentication
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Navigate to the appropriate page based on the role
       await Future.delayed(const Duration(seconds: 1));
-      if (role == 'Employee') {
-        String firstName = userData['firstName'] ?? '';
+      if (role == "Standard") {
+        String firstName = documentSnapshot.data()?['firstName'] ?? '';
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -86,7 +88,7 @@ class AuthService {
                 EmployeeCheckInPage(empname: firstName, empemail: email),
           ),
         );
-      } else if (role == 'HR') {
+      } else if (role == "HR") {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -95,7 +97,7 @@ class AuthService {
         );
       } else {
         Fluttertoast.showToast(
-          msg: 'Invalid role for the user.',
+          msg: 'Invalid role assigned to the user.',
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.SNACKBAR,
           backgroundColor: Colors.black54,
@@ -104,7 +106,6 @@ class AuthService {
         );
         return false;
       }
-
       return true;
     } on FirebaseAuthException catch (e) {
       String message = '';

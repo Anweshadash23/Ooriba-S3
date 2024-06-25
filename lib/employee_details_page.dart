@@ -21,11 +21,13 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   final RejectService _rejectService = RejectService();
   final _formKey = GlobalKey<FormState>();
   final EmployeeIdGenerator _idGenerator = EmployeeIdGenerator();
+  TextEditingController _joiningDateController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     employeeData = Map<String, dynamic>.from(widget.employeeData);
+    _joiningDateController.text = employeeData['joiningDate'] ?? '';
   }
 
   void _toggleEdit() {
@@ -74,7 +76,8 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     setState(() {
       isAccepted = true;
       isEditing = true;
-      employeeData['status'] = 'Active'; // Set status to Active when accepted
+      employeeData['status'] = 'Active';
+      employeeData['role'] = 'Standard';
     });
   }
 
@@ -195,7 +198,12 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       return 'Password is required';
     }
     if (value.length < 6) {
-      return 'Password must be at least 6 characters long';
+      return 'minimum length 6';
+    }
+    if (!RegExp(
+            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]')
+        .hasMatch(value)) {
+      return 'uppercase,lowercase,num,special character.';
     }
     return null;
   }
@@ -215,6 +223,24 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       return 'Age must be at least 18 years';
     }
     return null;
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    DateTime initialDate = employeeData['joiningDate'] != null
+        ? DateTime.parse(employeeData['joiningDate'])
+        : DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != initialDate) {
+      setState(() {
+        _joiningDateController.text = picked.toIso8601String().split('T')[0];
+        employeeData['joiningDate'] = _joiningDateController.text;
+      });
+    }
   }
 
   Widget _buildDetailRow(String label, String key,
@@ -279,9 +305,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                       );
                     }).toList(),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '$label is required';
-                      }
+                      // Remove mandatory validation for dropdowns
                       return null;
                     },
                   )
@@ -294,16 +318,17 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
 
   Widget _buildCategory(String title, List<Widget> children) {
     return Padding(
-      padding: const EdgeInsets.only(top: 16.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           Text(
             title,
             style: TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.bold,
-                decoration: TextDecoration.underline),
+              fontSize: 18.0,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
           ),
           Column(children: children),
         ],
@@ -315,13 +340,14 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${employeeData['firstName']} ${employeeData['lastName']}'),
+        title: Text('Employee Details'),
         actions: [
-          if (isEditing)
-            IconButton(
-              icon: Icon(Icons.save),
-              onPressed: _saveDetails,
-            ),
+          IconButton(
+            icon: Icon(Icons.close),
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the details page
+            },
+          ),
         ],
       ),
       body: Form(
@@ -389,46 +415,43 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                 'Technician',
                 'Executive'
               ]),
-              _buildDetailRow('Employee Type', 'employeeType',
-                  validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Employee type is required';
-                }
-                return null;
-              }),
-              _buildDetailRow('Joining Date', 'joiningDate',
-                  validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Joining date is required';
-                }
-                return null;
-              }),
               _buildDropdownRow(
-                  'Location', 'location', ['Jaypur', 'Berhampur', 'Raigada']),
+                  'Employee Type', 'employeeType', ['On-site', 'Off-site']),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Joining Date: ',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Expanded(
+                      child: isEditing
+                          ? TextFormField(
+                              controller: _joiningDateController,
+                              readOnly: true,
+                              onTap: () => _selectDate(context),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Joining date is required';
+                                }
+                                return null;
+                              },
+                            )
+                          : Text(employeeData['joiningDate'] ?? ''),
+                    ),
+                  ],
+                ),
+              ),
+              _buildDropdownRow(
+                  'Location', 'location', ['Jaypore', 'Berhampur', 'Raigada']),
             ]),
             _buildCategory('Bank Details', [
-              _buildDetailRow('Bank Name', 'bankName', validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Bank name is required';
-                }
-                return null;
-              }),
-              _buildDetailRow('Account Number', 'accountNumber', isNumber: true,
-                  validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Account number is required';
-                }
-                if (!RegExp(r'^\d+$').hasMatch(value)) {
-                  return 'Enter a valid account number';
-                }
-                return null;
-              }),
-              _buildDetailRow('IFSC Code', 'ifscCode', validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'IFSC code is required';
-                }
-                return null;
-              }),
+              _buildDetailRow('Bank Name', 'bankName'),
+              _buildDetailRow('Account Number', 'accountNumber',
+                  isNumber: true),
+              _buildDetailRow('IFSC Code', 'ifscCode'),
             ]),
             _buildCategory('Employee Status', [
               _buildDropdownRow('Status', 'status', [
@@ -436,11 +459,8 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                 'Inactive',
                 'On Hold',
               ]),
-              _buildCategory('Role', [
-                _buildDropdownRow('Role', 'role', ['Employee', 'HR']),
-              ]),
+              _buildDropdownRow('Role', 'role', ['Standard', 'HR']),
             ]),
-            // Add more details as needed
           ],
         ),
       ),
