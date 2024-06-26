@@ -1,8 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:ooriba/services/employeeService.dart';
+import 'package:ooriba/services/signup_email_service.dart';
+import 'dart:io';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -26,6 +27,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final _aadharNo = TextEditingController();
   File? dpImage, supportImage, adhaarImage;
   final EmployeeService _employeeService = EmployeeService();
+  final SignUpEmailService _signUpEmailService = SignUpEmailService();
 
   Future<void> _pickImage(int x) async {
     final pickedFile =
@@ -88,6 +90,9 @@ class _SignUpPageState extends State<SignUpPage> {
         supportImage!,
         context: context,
       );
+
+      // Send sign up email
+      await _signUpEmailService.sendSignUpEmail(email);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Signed up successfully')),

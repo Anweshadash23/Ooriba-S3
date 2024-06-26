@@ -1,8 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'registered_service.dart';
 import 'services/reject_service.dart';
 import 'employee_id_generator.dart';
+import 'services/accept_mail_service.dart';
+// import 'package:sms_advanced/sms_advanced.dart';
 
 class EmployeeDetailsPage extends StatefulWidget {
   final Map<String, dynamic> employeeData;
@@ -36,6 +39,8 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     });
   }
 
+  final AcceptMailService _acceptMailService = AcceptMailService();
+
   void _saveDetails() async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -55,10 +60,30 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
             .doc(employeeData['email'])
             .delete();
 
+        // Send acceptance email using EmailJS
+        await _acceptMailService.sendAcceptanceEmail(employeeData['email']);
+
+        // Send SMS
+        // SmsSender sender = SmsSender();
+        // String phoneNumber = employeeData['phoneNo'];
+        // String message =
+        //     'Your employee details have been saved successfully. Your employee ID is $employeeId.';
+        // SmsMessage smsMessage = SmsMessage(phoneNumber, message);
+        // smsMessage.onStateChanged.listen((state) {
+        //   if (state == SmsMessageState.Sent) {
+        //     print("SMS is sent!");
+        //   } else if (state == SmsMessageState.Delivered) {
+        //     print("SMS is delivered!");
+        //   } else if (state == SmsMessageState.Fail) {
+        //     print("Failed to send SMS.");
+        //   }
+        // });
+        // sender.sendSms(smsMessage);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
-                  'Employee details updated and deleted from the Employee collection successfully')),
+                  'Employee details updated, deleted from the Employee collection, and email sent successfully')),
         );
         setState(() {
           isEditing = false;
@@ -72,13 +97,35 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     }
   }
 
-  void _acceptDetails() {
+  Future<void> _acceptDetails() async {
     setState(() {
       isAccepted = true;
       isEditing = true;
       employeeData['status'] = 'Active';
       employeeData['role'] = 'Standard';
     });
+
+    try {
+      // Save user to Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+              email: employeeData['email'], password: employeeData['password']);
+      User? user = userCredential.user;
+
+      if (user != null) {
+        user.updateProfile(displayName: employeeData['firstName']);
+        // user.sendEmailVerification();
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Employee added to authentication successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add employee to authentication: $e')),
+      );
+    }
   }
 
   Future<void> _showRejectPopup() async {
