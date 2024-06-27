@@ -120,16 +120,16 @@ class _HRDashboardPageState extends State<HRDashboardPage> {
                       _showRegisteredEmployees,
                     ),
                   ),
-                  SizedBox(width: 16.0),
-                  Expanded(
-                    child: _buildDashboardBlock(
-                      context,
-                      'New Applicants',
-                      Icons.person_add,
-                      Colors.green,
-                      _showNewApplicants,
-                    ),
-                  ),
+                  // SizedBox(width: 16.0),
+                  // Expanded(
+                  //   child: _buildDashboardBlock(
+                  //     context,
+                  //     'New Applicants',
+                  //     Icons.person_add,
+                  //     Colors.green,
+                  //     _showNewApplicants,
+                  //   ),
+                  // ),
                   SizedBox(width: 16.0),
                   Expanded(
                     child: _buildDashboardBlock(
@@ -147,7 +147,7 @@ class _HRDashboardPageState extends State<HRDashboardPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
-                'Employee Details',
+                'Applicant Details',
                 style: TextStyle(
                   fontSize: 18.0,
                   fontWeight: FontWeight.bold,
@@ -287,25 +287,25 @@ class _HRDashboardPageState extends State<HRDashboardPage> {
     );
   }
 
-  void _showNewApplicants(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('New Applicants'),
-          content: const Text('List of new applicants...'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Close'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // void _showNewApplicants(BuildContext context) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: const Text('New Applicants'),
+  //         content: const Text('List of new applicants...'),
+  //         actions: <Widget>[
+  //           TextButton(
+  //             child: const Text('Close'),
+  //             onPressed: () {
+  //               Navigator.of(context).pop();
+  //             },
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 
   void _showRejectedApplications(BuildContext context) {
     Navigator.of(context).push(

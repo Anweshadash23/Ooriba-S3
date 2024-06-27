@@ -2,9 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'registered_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'services/reject_service.dart';
 import 'employee_id_generator.dart';
 import 'services/accept_mail_service.dart';
+// import 'package:emailjs/emailjs.dart';
 // import 'package:sms_advanced/sms_advanced.dart';
 
 class EmployeeDetailsPage extends StatefulWidget {
@@ -33,13 +35,19 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     _joiningDateController.text = employeeData['joiningDate'] ?? '';
   }
 
+  Future<void> _launchURL(String url) async {
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
   void _toggleEdit() {
     setState(() {
       isEditing = !isEditing;
     });
   }
-
-  final AcceptMailService _acceptMailService = AcceptMailService();
 
   void _saveDetails() async {
     if (_formKey.currentState!.validate()) {
@@ -59,9 +67,6 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
             .collection('Employee')
             .doc(employeeData['email'])
             .delete();
-
-        // Send acceptance email using EmailJS
-        await _acceptMailService.sendAcceptanceEmail(employeeData['email']);
 
         // Send SMS
         // SmsSender sender = SmsSender();
@@ -97,6 +102,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     }
   }
 
+  final AcceptMailService _acceptMailService = AcceptMailService();
   Future<void> _acceptDetails() async {
     setState(() {
       isAccepted = true;
@@ -117,13 +123,19 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
         // user.sendEmailVerification();
       }
 
+      // Send acceptance email using EmailJS
+      await _acceptMailService.sendAcceptanceEmail(employeeData['email']);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Employee added to authentication successfully')),
+            content: Text(
+                'Employee added to authentication and acceptance email sent successfully')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add employee to authentication: $e')),
+        SnackBar(
+            content: Text(
+                'Failed to add employee to authentication or send acceptance email: $e')),
       );
     }
   }
@@ -259,6 +271,11 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     if (value == null || value.isEmpty) {
       return 'Date of birth is required';
     }
+    // Validate format dd/mm/yyyy
+    if (!RegExp(r'^\d{2}/\d{2}/\d{4}$').hasMatch(value)) {
+      return 'Enter a valid date format (dd/mm/yyyy)';
+    }
+    // Validate age
     DateTime dob = DateTime.parse(value);
     DateTime today = DateTime.now();
     int age = today.year - dob.year;
@@ -284,7 +301,8 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     );
     if (picked != null && picked != initialDate) {
       setState(() {
-        _joiningDateController.text = picked.toIso8601String().split('T')[0];
+        _joiningDateController.text =
+            '${picked.day}/${picked.month}/${picked.year}';
         employeeData['joiningDate'] = _joiningDateController.text;
       });
     }
@@ -299,26 +317,153 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          Container(
+            width: 150,
+            child: Text(
+              '$label: ',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: isEditing
+                ? TextFormField(
+                    initialValue: employeeData[key] ?? '',
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType:
+                        isNumber ? TextInputType.number : TextInputType.text,
+                    onChanged: (value) {
+                      employeeData[key] = value;
+                    },
+                    validator: validator,
+                  )
+                : Text(employeeData[key] ?? ''),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDatePickerRow(String label, String key) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: 150,
+            child: Text(
+              '$label: ',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: isEditing
+                ? GestureDetector(
+                    onTap: () => _selectDate(context),
+                    child: AbsorbPointer(
+                      child: TextFormField(
+                        controller: _joiningDateController,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          suffixIcon: Icon(Icons.calendar_today),
+                        ),
+                        validator: _validateDateOfBirth,
+                      ),
+                    ),
+                  )
+                : Text(employeeData[key] ?? ''),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPasswordRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
           Text(
-            '$label: ',
+            'Password: ',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           Expanded(
             child: isEditing
                 ? TextFormField(
-                    controller:
-                        TextEditingController(text: employeeData[key] ?? ''),
+                    initialValue: employeeData['password'],
                     onChanged: (newValue) {
-                      employeeData[key] = newValue;
+                      setState(() {
+                        employeeData['password'] = newValue;
+                      });
                     },
-                    keyboardType: isNumber
-                        ? TextInputType.number
-                        : isEmail
-                            ? TextInputType.emailAddress
-                            : TextInputType.text,
-                    validator: validator,
+                    obscureText: true,
+                    validator: _validatePassword,
                   )
-                : Text(employeeData[key] ?? ''),
+                : Text(employeeData['password'] != null
+                    ? '********'
+                    : 'N/A'), // Mask the password
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageRow(String label, String key) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: 150,
+            child: Text(
+              '$label: ',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Container(
+            width: 50, // Fixed width
+            height: 50, // Fixed height
+            child: employeeData[key] != null
+                ? FadeInImage.assetNetwork(
+                    placeholder:
+                        'assets/placeholder_image.png', // Placeholder image asset path
+                    image: employeeData[key], // Image URL from employeeData
+                    fit: BoxFit.cover,
+                  )
+                : Text('N/A'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentRow(String label, String key) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: 150,
+            child: Text(
+              '$label: ',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: employeeData[key] != null
+                ? ElevatedButton(
+                    onPressed: () async {
+                      final url = employeeData[key];
+                      await _launchURL(url);
+                    },
+                    child: Text('Download'),
+                  )
+                : Text('N/A'),
           ),
         ],
       ),
@@ -331,9 +476,12 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            '$label: ',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          Container(
+            width: 150,
+            child: Text(
+              '$label: ',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           Expanded(
             child: isEditing
@@ -442,12 +590,46 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                     validator: _validateAadharNumber),
                 _buildDetailRow('PAN Number', 'panNo',
                     validator: _validatePanNumber),
-                _buildDetailRow('DP Image URL', 'dpImageUrl'),
-                _buildDetailRow('Aadhar Image URL', 'aadharImageUrl'),
-                _buildDetailRow('Support URL', 'supportUrl'),
+                _buildImageRow('Profile Picture', 'dpImageUrl'),
+                _buildAttachmentRow('Aadhar Doc', 'adhaarImageUrl'),
+                _buildAttachmentRow('Support Doc', 'supportImageUrl'),
               ],
             ),
             _buildCategory('Job Description', [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Container(
+                      width: 150,
+                      child: Text(
+                        'Joining Date*: ',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.red),
+                      ),
+                    ),
+                    Expanded(
+                      child: isEditing
+                          ? TextFormField(
+                              controller: _joiningDateController,
+                              readOnly: true,
+                              onTap: () => _selectDate(context),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Joining date is required';
+                                }
+                                return null;
+                              },
+                            )
+                          : Text(
+                              employeeData['joiningDate'] ?? 'N/A',
+                              style: TextStyle(color: Colors.black87),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
               _buildDropdownRow('Department', 'department', [
                 'Sales',
                 'Services',
@@ -464,33 +646,6 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
               ]),
               _buildDropdownRow(
                   'Employee Type', 'employeeType', ['On-site', 'Off-site']),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Joining Date: ',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Expanded(
-                      child: isEditing
-                          ? TextFormField(
-                              controller: _joiningDateController,
-                              readOnly: true,
-                              onTap: () => _selectDate(context),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Joining date is required';
-                                }
-                                return null;
-                              },
-                            )
-                          : Text(employeeData['joiningDate'] ?? ''),
-                    ),
-                  ],
-                ),
-              ),
               _buildDropdownRow(
                   'Location', 'location', ['Jaypore', 'Berhampur', 'Raigada']),
             ]),

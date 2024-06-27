@@ -35,6 +35,7 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
   late DateTime dataDate;
   late List<CheckInOutRecord> checkInOutRecords;
   late String _email;
+
   @override
   void initState() {
     super.initState();
@@ -179,6 +180,7 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -204,6 +206,11 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
                     'Checked out at: ${checkInOutRecords[index].checkOutTime}'),
             trailing: ElevatedButton(
               onPressed: () => _toggleCheckInOut(index),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: checkInOutRecords[index].isCheckedIn
+                    ? Colors.red
+                    : Colors.green,
+              ),
               child: checkInOutRecords[index].isCheckedIn
                   ? const Text('Check Out')
                   : const Text('Check In'),
@@ -213,30 +220,4 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
       ),
     );
   }
-  // Widget build(BuildContext context) {
-  //   return Scaffold(
-  //     appBar: AppBar(
-  //       title: Text('Welcome, ${_email}'),
-  //     ),
-  //     body: ListView.builder(
-  //       itemCount: checkInOutRecords.length,
-  //       itemBuilder: (context, index) {
-  //         return ListTile(
-  //           title: Text(
-  //               'Date: ${checkInOutRecords[index].date.toLocal().toString().split(' ')[0]}'),
-  //           subtitle: checkInOutRecords[index].isCheckedIn
-  //               ? Text('Checked in at: ${checkInOutRecords[index].checkInTime}')
-  //               : Text(
-  //                   'Checked out at: ${checkInOutRecords[index].checkOutTime}'),
-  //           trailing: ElevatedButton(
-  //             onPressed: () => _toggleCheckInOut(index),
-  //             child: checkInOutRecords[index].isCheckedIn
-  //                 ? const Text('Check Out')
-  //                 : const Text('Check In'),
-  //           ),
-  //         );
-  //       },
-  //     ),
-  //   );
-  // }
 }

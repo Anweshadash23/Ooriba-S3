@@ -71,16 +71,16 @@ class EmployeeCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      '${data['firstName']} ${data['lastName']}',
+                      '${data['employeeId']}  ${data['firstName']} ${data['lastName']}',
                       style: TextStyle(
                         fontSize: 18.0,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     SizedBox(height: 4.0),
-                    Text('Phone: ${data['phoneNo']}'),
-                    Text('Email: ${data['email']}'),
-                    Text('Employee Type: ${data['employeeType']}'),
+                    Text('Department: ${data['Department']}'),
+                    Text('Designation: ${data['Designation']}'),
+                    // Text('Employee Type: ${data['employeeType']}'),
                   ],
                 ),
               ],

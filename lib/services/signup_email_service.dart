@@ -1,6 +1,5 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_email_sender/flutter_email_sender.dart';
 
 class SignUpEmailService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -22,31 +21,27 @@ class SignUpEmailService {
   Future<void> sendSignUpEmail(String email) async {
     final employeeData = await getEmployeeDetails(email);
 
-    const serviceId = 'service_z0soilk';
-    const templateId = 'template_q66bo0j';
-    const userId = 'ylxnV-iUDuMz0I74O';
+    final Email emailToSend = Email(
+      body: 'A new employee has signed up.\n\n'
+          'First Name: ${employeeData['firstName']}\n'
+          'Last Name: ${employeeData['lastName']}\n'
+          'Email: ${employeeData['email']}\n'
+          'Please review the sign-up details.',
+      subject: 'New Employee Sign Up',
+      recipients: [
+        'anweshadash04@gmail.com.com'
+      ], // Replace with the HR email address
+      cc: [
+        'geethikamulugu@gmail.com'
+      ], // Replace with CC email address if needed
+      bcc: ['bcc@example.com'], // Replace with BCC email address if needed
+      isHTML: false,
+    );
 
-    final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
-    final response = await http.post(url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'service_id': serviceId,
-          'template_id': templateId,
-          'user_id': userId,
-          'template_params': {
-            'firstName': employeeData['firstName'],
-            'lastName': employeeData['lastName'],
-            'email': employeeData['email'],
-            'to_email': 'anweshadash423@gmail.com',
-            'reply_to': 'anweshadash04@gmail.com',
-            // 'dob': employeeData['dob'],
-          },
-        }));
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to send sign up email: ${response.body}');
+    try {
+      await FlutterEmailSender.send(emailToSend);
+    } catch (e) {
+      throw Exception('Failed to send sign-up email: $e');
     }
   }
 }

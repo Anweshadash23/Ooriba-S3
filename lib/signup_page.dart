@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:ooriba/services/employeeService.dart';
-import 'package:ooriba/services/signup_email_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'dart:io';
+import 'package:ooriba/services/signup_email_service.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -27,7 +29,6 @@ class _SignUpPageState extends State<SignUpPage> {
   final _aadharNo = TextEditingController();
   File? dpImage, supportImage, adhaarImage;
   final EmployeeService _employeeService = EmployeeService();
-  final SignUpEmailService _signUpEmailService = SignUpEmailService();
 
   Future<void> _pickImage(int x) async {
     final pickedFile =
@@ -58,7 +59,7 @@ class _SignUpPageState extends State<SignUpPage> {
       final resAdd = _residentialAddress.text;
       final perAdd = _permanentAddress.text;
       final phoneNo = _phoneNumber.text;
-      final dob = DateFormat.yMd().format(_dob!);
+      final dob = DateFormat('dd/MM/yyyy').format(_dob!);
       var aadharNo = _aadharNo.text
           .replaceAll(' ', ''); // Remove spaces from Aadhaar number
 
@@ -73,30 +74,39 @@ class _SignUpPageState extends State<SignUpPage> {
         return;
       }
 
-      await _employeeService.addEmployee(
-        firstName,
-        middleName,
-        lastName,
-        email,
-        password,
-        panNo,
-        resAdd,
-        perAdd,
-        phoneNo,
-        dob,
-        aadharNo,
-        dpImage!,
-        adhaarImage!,
-        supportImage!,
-        context: context,
-      );
+      try {
+        // Add employee data to Firestore
+        await _employeeService.addEmployee(
+          firstName,
+          middleName,
+          lastName,
+          email,
+          password,
+          panNo,
+          resAdd,
+          perAdd,
+          phoneNo,
+          dob,
+          aadharNo,
+          dpImage!,
+          adhaarImage!,
+          supportImage!,
+          context: context,
+        );
 
-      // Send sign up email
-      await _signUpEmailService.sendSignUpEmail(email);
+        // Send sign up email
+        await SignUpEmailService().sendSignUpEmail(email);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Signed up successfully')),
-      );
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Signed up successfully')),
+        );
+      } catch (e) {
+        // Handle any errors
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to sign up: $e')),
+        );
+      }
     }
   }
 
@@ -294,7 +304,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             decoration: InputDecoration(
                               labelText: _dob == null
                                   ? 'Date of Birth'
-                                  : DateFormat.yMd().format(_dob!),
+                                  : DateFormat('dd/MM/yyyy').format(_dob!),
                               border: OutlineInputBorder(),
                             ),
                             validator: (value) {
@@ -360,7 +370,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () => _pickImage(2),
-                        child: const Text('Upload DP Image'),
+                        child: const Text('Upload Profile Picture'),
                       ),
                       const SizedBox(height: 10),
                       dpImage == null
@@ -369,7 +379,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () => _pickImage(1),
-                        child: const Text('Upload Aadhaar Image'),
+                        child: const Text('Upload Aadhaar Doc'),
                       ),
                       const SizedBox(height: 10),
                       adhaarImage == null
@@ -378,7 +388,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () => _pickImage(3),
-                        child: const Text('Upload Supporting Image'),
+                        child: const Text('Upload Supporting Doc'),
                       ),
                       const SizedBox(height: 10),
                       supportImage == null

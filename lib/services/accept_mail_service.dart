@@ -8,42 +8,51 @@ class AcceptMailService {
   Future<Map<String, dynamic>> getEmployeeDetails(String email) async {
     try {
       DocumentSnapshot doc =
-          await _firestore.collection('Regemp').doc(email).get();
+          await _firestore.collection('Employee').doc(email).get();
       if (doc.exists) {
         return doc.data() as Map<String, dynamic>;
       } else {
         throw Exception('No employee found with this email.');
       }
     } catch (e) {
+      print('Failed to fetch employee details: $e');
       throw Exception('Failed to fetch employee details: $e');
     }
   }
 
   Future<void> sendAcceptanceEmail(String email) async {
-    final employeeData = await getEmployeeDetails(email);
+    try {
+      final employeeData = await getEmployeeDetails(email);
 
-    const serviceId = 'service_z0soilk';
-    const templateId = 'template_iya9xyn';
-    const userId = 'ylxnV-iUDuMz0I74O';
+      const serviceId = 'service_z0soilk';
+      const templateId = 'template_iya9xyn';
+      const userId = '_b8-qaQnQOhviU59X';
 
-    final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
-    final response = await http.post(url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'service_id': serviceId,
-          'template_id': templateId,
-          'user_id': userId,
-          'template_params': {
-            'firstName': employeeData['firstName'],
-            'employeeId': employeeData['employeeId'],
-            'to_email': employeeData['email'],
+      final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
+      final response = await http.post(url,
+          headers: {
+            'Content-Type': 'application/json',
           },
-        }));
+          body: json.encode({
+            'service_id': serviceId,
+            'template_id': templateId,
+            'user_id': userId,
+            'template_params': {
+              'firstName': employeeData['firstName'],
+              'lastName': employeeData['lastName'],
+              'to_email': employeeData['email'],
+            },
+          }));
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to send acceptance email: ${response.body}');
+      if (response.statusCode != 200) {
+        print('Failed to send acceptance email: ${response.body}');
+        throw Exception('Failed to send acceptance email: ${response.body}');
+      } else {
+        print('Acceptance email sent successfully');
+      }
+    } catch (e) {
+      print('Error in sendAcceptanceEmail: $e');
+      throw Exception('Error in sendAcceptanceEmail: $e');
     }
   }
 }
