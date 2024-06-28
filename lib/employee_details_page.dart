@@ -679,7 +679,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
               _buildDropdownRow(
                   'Employee Type', 'employeeType', ['On-site', 'Off-site']),
               _buildDropdownRow(
-                  'Location', 'location', ['Jaypore', 'Berhampur', 'Raigada']),
+                  'Location', 'location', ['Jeypore', 'Berhampur', 'Raigada']),
             ]),
             _buildCategory('Bank Details', [
               _buildDetailRow('Bank Name', 'bankName'),
