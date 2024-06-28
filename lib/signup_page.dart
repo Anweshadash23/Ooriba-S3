@@ -74,38 +74,35 @@ class _SignUpPageState extends State<SignUpPage> {
         return;
       }
 
+      await _employeeService.addEmployee(
+        firstName,
+        middleName,
+        lastName,
+        email,
+        password,
+        panNo,
+        resAdd,
+        perAdd,
+        phoneNo,
+        dob,
+        aadharNo,
+        dpImage!,
+        adhaarImage!,
+        supportImage!,
+        context: context,
+      );
+
+      // Send sign up email
       try {
-        // Add employee data to Firestore
-        await _employeeService.addEmployee(
-          firstName,
-          middleName,
-          lastName,
-          email,
-          password,
-          panNo,
-          resAdd,
-          perAdd,
-          phoneNo,
-          dob,
-          aadharNo,
-          dpImage!,
-          adhaarImage!,
-          supportImage!,
-          context: context,
-        );
-
-        // Send sign up email
         await SignUpEmailService().sendSignUpEmail(email);
-
-        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Signed up successfully')),
         );
       } catch (e) {
-        // Handle any errors
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to sign up: $e')),
+          SnackBar(content: Text('Failed to send sign up email')),
         );
+        print('Error sending sign up email: $e');
       }
     }
   }
@@ -236,9 +233,9 @@ class _SignUpPageState extends State<SignUpPage> {
                             return 'Please enter your password';
                           }
                           if (!RegExp(
-                                  r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$')
+                                  r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]')
                               .hasMatch(value)) {
-                            return 'should contain uppercase,number,special character';
+                            return 'Password should contain at least one number, one uppercase letter, and one symbol';
                           }
                           return null;
                         },

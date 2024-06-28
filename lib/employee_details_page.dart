@@ -33,6 +33,14 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     super.initState();
     employeeData = Map<String, dynamic>.from(widget.employeeData);
     _joiningDateController.text = employeeData['joiningDate'] ?? '';
+
+    // Format dob to dd/mm/yyyy if it exists
+    if (employeeData['dob'] != null && employeeData['dob'].isNotEmpty) {
+      final parts = employeeData['dob'].split('/');
+      final formattedDob =
+          '${parts[0].padLeft(2, '0')}/${parts[1].padLeft(2, '0')}/${parts[2]}';
+      employeeData['dob'] = formattedDob;
+    }
   }
 
   Future<void> _launchURL(String url) async {
@@ -271,21 +279,37 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     if (value == null || value.isEmpty) {
       return 'Date of birth is required';
     }
+
     // Validate format dd/mm/yyyy
-    if (!RegExp(r'^\d{2}/\d{2}/\d{4}$').hasMatch(value)) {
+    final dateFormat = RegExp(r'^\d{2}/\d{2}/\d{4}$');
+    if (!dateFormat.hasMatch(value)) {
       return 'Enter a valid date format (dd/mm/yyyy)';
     }
-    // Validate age
-    DateTime dob = DateTime.parse(value);
-    DateTime today = DateTime.now();
-    int age = today.year - dob.year;
-    if (today.month < dob.month ||
-        (today.month == dob.month && today.day < dob.day)) {
-      age--;
+
+    try {
+      // Convert to DateTime
+      final parts = value.split('/');
+      final dob = DateTime(
+        int.parse(parts[2]),
+        int.parse(parts[1]),
+        int.parse(parts[0]),
+      );
+
+      // Validate age
+      final today = DateTime.now();
+      int age = today.year - dob.year;
+      if (today.month < dob.month ||
+          (today.month == dob.month && today.day < dob.day)) {
+        age--;
+      }
+
+      if (age < 18) {
+        return 'Age must be at least 18 years';
+      }
+    } catch (e) {
+      return 'Invalid date';
     }
-    if (age < 18) {
-      return 'Age must be at least 18 years';
-    }
+
     return null;
   }
 
@@ -425,8 +449,8 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
             ),
           ),
           Container(
-            width: 50, // Fixed width
-            height: 50, // Fixed height
+            width: 100, // Fixed width
+            height: 100, // Fixed height
             child: employeeData[key] != null
                 ? FadeInImage.assetNetwork(
                     placeholder:
@@ -456,12 +480,20 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
           ),
           Expanded(
             child: employeeData[key] != null
-                ? ElevatedButton(
-                    onPressed: () async {
-                      final url = employeeData[key];
-                      await _launchURL(url);
-                    },
-                    child: Text('Download'),
+                ? Align(
+                    alignment: Alignment.centerLeft,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final url = employeeData[key];
+                        await _launchURL(url);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        minimumSize: Size(60, 40), // Adjust the size as needed
+                      ),
+                      child: Text('Download'),
+                    ),
                   )
                 : Text('N/A'),
           ),

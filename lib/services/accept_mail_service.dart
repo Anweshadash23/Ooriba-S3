@@ -24,16 +24,18 @@ class AcceptMailService {
     try {
       final employeeData = await getEmployeeDetails(email);
 
-      const serviceId = 'service_z0soilk';
-      const templateId = 'template_iya9xyn';
+      const serviceId = 'service_7isyfqo';
+      const templateId = 'template_2kg20dr';
       const userId = '_b8-qaQnQOhviU59X';
+      // const apiKey =
+      //     'WJJNAozmZ1JCRjpS5eyOa';
 
       final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
       final response = await http.post(url,
           headers: {
             'Content-Type': 'application/json',
           },
-          body: json.encode({
+          body: jsonEncode({
             'service_id': serviceId,
             'template_id': templateId,
             'user_id': userId,
@@ -42,6 +44,7 @@ class AcceptMailService {
               'lastName': employeeData['lastName'],
               'to_email': employeeData['email'],
             },
+            // 'access_token': apiKey,
           }));
 
       if (response.statusCode != 200) {

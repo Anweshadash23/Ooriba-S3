@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class RegisteredEmployeesPage extends StatefulWidget {
   @override
@@ -71,7 +72,7 @@ class EmployeeCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      '${data['employeeId']}  ${data['firstName']} ${data['lastName']}',
+                      '${data['employeeId']} - ${data['firstName']} ${data['lastName']}',
                       style: TextStyle(
                         fontSize: 18.0,
                         fontWeight: FontWeight.bold,
@@ -154,6 +155,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
   String _selectedEmployeeType = '';
 
   final Map<String, String> _validationErrors = {};
+  final DateFormat _dateFormatter = DateFormat('dd/MM/yyyy');
 
   @override
   void initState() {

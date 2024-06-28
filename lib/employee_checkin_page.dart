@@ -208,8 +208,8 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
               onPressed: () => _toggleCheckInOut(index),
               style: ElevatedButton.styleFrom(
                 backgroundColor: checkInOutRecords[index].isCheckedIn
-                    ? Colors.red
-                    : Colors.green,
+                    ? Colors.green
+                    : Colors.red,
               ),
               child: checkInOutRecords[index].isCheckedIn
                   ? const Text('Check Out')
