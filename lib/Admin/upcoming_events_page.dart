@@ -1,6 +1,3 @@
-// upcoming_events_page.dart:
-
-
 // import 'package:flutter/material.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:table_calendar/table_calendar.dart';
@@ -23,7 +20,8 @@
 //   }
 
 //   Future<void> _loadEvents() async {
-//     QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Events').get();
+//     QuerySnapshot querySnapshot =
+//         await FirebaseFirestore.instance.collection('Events').get();
 //     setState(() {
 //       _events = {};
 //       for (var doc in querySnapshot.docs) {
@@ -46,7 +44,8 @@
 
 //   Future<void> _addEvent(String event) async {
 //     if (_selectedDay != null) {
-//       DocumentReference docRef = await FirebaseFirestore.instance.collection('Events').add({
+//       DocumentReference docRef =
+//           await FirebaseFirestore.instance.collection('Events').add({
 //         'date': Timestamp.fromDate(_selectedDay!),
 //         'event': event,
 //       });
@@ -122,7 +121,7 @@
 //             onDaySelected: (selectedDay, focusedDay) {
 //               setState(() {
 //                 _selectedDay = selectedDay;
-//                 _focusedDay = focusedDay; // update _focusedDay here as well
+//                 _focusedDay = focusedDay; // update `_focusedDay` here as well
 //               });
 //             },
 //             onFormatChanged: (format) {
@@ -150,7 +149,8 @@
 //                         title: Text(event['event']),
 //                         trailing: IconButton(
 //                           icon: const Icon(Icons.delete),
-//                           onPressed: () => _deleteEvent(event['id'], _selectedDay ?? _focusedDay),
+//                           onPressed: () => _deleteEvent(
+//                               event['id'], _selectedDay ?? _focusedDay),
 //                         ),
 //                       ))
 //                   .toList(),

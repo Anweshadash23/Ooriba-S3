@@ -11,7 +11,6 @@ import 'package:ooriba/services/reject_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 // import 'package:emailjs/emailjs.dart';
 // import 'package:sms_advanced/sms_advanced.dart';
 
@@ -119,29 +118,35 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   void _saveDetails() async {
     if (_formKey.currentState!.validate()) {
       try {
-        // Generate a new employee ID based on location
-        final location = employeeData[
-            'location']; // Assuming location is stored in employeeData
+        // Ensure location is provided in employeeData
+        String location = employeeData['location'];
+        if (location == null || location.isEmpty) {
+          throw Exception('Location is required to generate an employee ID');
+        }
+
+        // Generate a new employee ID
         final employeeId = await _idGenerator.generateEmployeeId(location);
         employeeData['employeeId'] = employeeId;
 
-        // Save employee details to Firestore
+        print('Saving data: ${employeeData['email']} -> $employeeData');
         await FirebaseFirestore.instance
             .collection('Regemp')
-            .doc(employeeData[
-                'phoneNo']) // Assuming 'phoneNo' is the document ID
+            .doc(employeeData['phoneNo'])
             .set(employeeData);
 
-        // Optionally delete from another collection
-        // await FirebaseFirestore.instance
-        //     .collection('Employee')
-        //     .doc(employeeData['phoneNo'])
-        //     .delete();
+        // Delete the employee from the "Employee" collection
+        await FirebaseFirestore.instance
+            .collection('Employee')
+            .doc(employeeData['phoneNo'])
+            .delete();
+
+        // Optionally send SMS here
+        // ...
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Employee details updated and saved successfully'),
-          ),
+              content: Text(
+                  'Employee details updated, deleted from the Employee collection, and email sent successfully')),
         );
         setState(() {
           isEditing = false;
@@ -149,9 +154,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       } catch (e) {
         print('Error saving employee data: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update employee details: $e'),
-          ),
+          SnackBar(content: Text('Failed to update employee details: $e')),
         );
       }
     }

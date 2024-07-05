@@ -1,48 +1,40 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EmployeeIdGenerator {
-  static const int _idLength = 3;
-
   Future<String> generateEmployeeId(String location) async {
-    final String prefix;
-    switch (location) {
-      case 'Berhampur':
-        prefix = 'OOB';
-        break;
-      case 'Jeypore':
-        prefix = 'OOJ';
-        break;
-      case 'Rayagada':
-        prefix = 'OOR';
-        break;
-      default:
-        throw ArgumentError('Invalid location: $location');
-    }
+    // Fetch location details from Firestore collection "location"
+    DocumentReference locationRef =
+        FirebaseFirestore.instance.collection('location').doc(location);
 
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('Regemp')
-        .where('employeeId', isGreaterThanOrEqualTo: prefix)
-        .where('employeeId', isLessThan: _getNextPrefix(prefix))
-        .orderBy('employeeId', descending: true)
-        .limit(1)
-        .get();
+    DocumentSnapshot locationDoc = await locationRef.get();
 
-    if (querySnapshot.docs.isEmpty) {
-      return '$prefix${_formatId(1)}';
+    if (locationDoc.exists) {
+      // Cast data to Map<String, dynamic>
+      Map<String, dynamic> locationData =
+          locationDoc.data() as Map<String, dynamic>;
+
+      // Get prefix and current count
+      String prefix = locationData['prefix'];
+      int count;
+
+      // Check if count field exists
+      if (locationData.containsKey('count')) {
+        count = locationData['count'];
+      } else {
+        count = 0;
+      }
+
+      // Increment count
+      count++;
+
+      // Update count in Firestore
+      await locationRef.update({'count': count});
+
+      // Generate employeeId with format: prefix + count (e.g., JEY001)
+      String employeeId = '$prefix${count.toString().padLeft(3, '0')}';
+      return employeeId;
     } else {
-      final lastId = querySnapshot.docs.first.get('employeeId') as String;
-      final numericPart = int.tryParse(lastId.replaceFirst(prefix, '')) ?? 0;
-      return '$prefix${_formatId(numericPart + 1)}';
+      throw Exception('Location details not found');
     }
-  }
-
-  String _formatId(int id) {
-    return id.toString().padLeft(_idLength, '0');
-  }
-
-  String _getNextPrefix(String prefix) {
-    final prefixCode = prefix.codeUnitAt(2);
-    final nextPrefixCode = prefixCode + 1;
-    return prefix.substring(0, 2) + String.fromCharCode(nextPrefixCode);
   }
 }

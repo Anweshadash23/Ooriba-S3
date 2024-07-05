@@ -1,17 +1,14 @@
-// admin.dart:
-
 // import 'package:flutter/material.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:ooriba/HR/attendance.dart';
 // import 'package:ooriba/HR/registered_employees_page.dart';
+// import 'package:ooriba/HR/rejected_employees_page.dart';
+// import 'package:ooriba/services/auth_service.dart';
+// import 'package:ooriba/services/company_name_service.dart';
+// import 'package:ooriba/services/registered_service.dart';
 // import 'package:provider/provider.dart';
 // import 'package:location/location.dart';
 // import 'admin_employee_details.dart';
-// import 'registered_employees_page[1].dart';
-// import 'services/auth_service.dart';
-// import 'attendance.dart'; // Assuming this file contains DatePickerButton widget
-// import 'rejected_employees_page.dart';
-// import 'services/registered_service.dart';
-// import 'services/company_name_service.dart'; // Import the company name service
 // import 'upcoming_events_page.dart'; // Import the Upcoming Events page
 
 // class AdminDashboardPage extends StatefulWidget {
@@ -97,7 +94,8 @@
 //                 Navigator.pop(context);
 //                 Navigator.push(
 //                   context,
-//                   MaterialPageRoute(builder: (context) => StandardSettingsPage()),
+//                   MaterialPageRoute(
+//                       builder: (context) => StandardSettingsPage()),
 //                 );
 //               },
 //             ),
@@ -142,7 +140,8 @@
 //               ),
 //             ),
 //             Padding(
-//               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+//               padding:
+//                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
 //               child: Row(
 //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
 //                 children: <Widget>[
@@ -253,7 +252,8 @@
 //   void _showEmployeeDetails(BuildContext context) {
 //     Navigator.push(
 //       context,
-//       MaterialPageRoute(builder: (context) => EmployeeDetailsPage(employeeData: {})),
+//       MaterialPageRoute(
+//           builder: (context) => EmployeeDetailsPage(employeeData: {})),
 //     );
 //   }
 // }
@@ -278,10 +278,8 @@
 //   }
 
 //   Future<void> _loadCompanyName() async {
-//     DocumentSnapshot documentSnapshot = await _firestore
-//         .collection('Config')
-//         .doc('company_name')
-//         .get();
+//     DocumentSnapshot documentSnapshot =
+//         await _firestore.collection('Config').doc('company_name').get();
 
 //     if (documentSnapshot.exists) {
 //       _companyNameController.text = documentSnapshot['name'];
@@ -289,7 +287,8 @@
 //   }
 
 //   Future<void> _loadLocations() async {
-//     QuerySnapshot querySnapshot = await _firestore.collection('Locations').get();
+//     QuerySnapshot querySnapshot =
+//         await _firestore.collection('Locations').get();
 //     setState(() {
 //       _locations = querySnapshot.docs.map((doc) {
 //         return {
@@ -302,13 +301,19 @@
 //   }
 
 //   Future<bool> _checkDuplicateEmployeeId(String employeeId) async {
-//     QuerySnapshot querySnapshot = await _firestore.collection('Locations').where('employee_id', isEqualTo: employeeId).get();
+//     QuerySnapshot querySnapshot = await _firestore
+//         .collection('Locations')
+//         .where('employee_id', isEqualTo: employeeId)
+//         .get();
 //     return querySnapshot.docs.isNotEmpty;
 //   }
 
 //   Future<String> _generateEmployeeId(String locationName) async {
 //     String baseId = 'OOR';
-//     String initials = locationName.replaceAll(RegExp(r'\s+'), '').substring(0, 3).toUpperCase();
+//     String initials = locationName
+//         .replaceAll(RegExp(r'\s+'), '')
+//         .substring(0, 3)
+//         .toUpperCase();
 //     String employeeId = '$baseId$initials';
 
 //     int counter = 1;
@@ -325,7 +330,8 @@
 //       'name': _companyNameController.text,
 //     });
 
-//     final companyNameService = Provider.of<CompanyNameService>(context, listen: false);
+//     final companyNameService =
+//         Provider.of<CompanyNameService>(context, listen: false);
 //     companyNameService.setCompanyName(_companyNameController.text);
 
 //     ScaffoldMessenger.of(context).showSnackBar(
@@ -340,14 +346,16 @@
 
 //     await _firestore.collection('Locations').add({
 //       'name': locationName,
-//       'coordinates': GeoPoint(currentLocation.latitude!, currentLocation.longitude!),
+//       'coordinates':
+//           GeoPoint(currentLocation.latitude!, currentLocation.longitude!),
 //       'employee_id': employeeId,
 //     });
 
 //     setState(() {
 //       _locations.add({
 //         'name': locationName,
-//         'coordinates': GeoPoint(currentLocation.latitude!, currentLocation.longitude!),
+//         'coordinates':
+//             GeoPoint(currentLocation.latitude!, currentLocation.longitude!),
 //         'employee_id': employeeId
 //       });
 //       _locationController.clear();
@@ -355,7 +363,10 @@
 //   }
 
 //   Future<void> _deleteLocation(String name) async {
-//     QuerySnapshot querySnapshot = await _firestore.collection('Locations').where('name', isEqualTo: name).get();
+//     QuerySnapshot querySnapshot = await _firestore
+//         .collection('Locations')
+//         .where('name', isEqualTo: name)
+//         .get();
 //     for (DocumentSnapshot doc in querySnapshot.docs) {
 //       await _firestore.collection('Locations').doc(doc.id).delete();
 //     }
@@ -374,9 +385,15 @@
 //       return;
 //     }
 
-//     QuerySnapshot querySnapshot = await _firestore.collection('Locations').where('name', isEqualTo: name).get();
+//     QuerySnapshot querySnapshot = await _firestore
+//         .collection('Locations')
+//         .where('name', isEqualTo: name)
+//         .get();
 //     for (DocumentSnapshot doc in querySnapshot.docs) {
-//       await _firestore.collection('Locations').doc(doc.id).update({'employee_id': newEmployeeId});
+//       await _firestore
+//           .collection('Locations')
+//           .doc(doc.id)
+//           .update({'employee_id': newEmployeeId});
 //     }
 
 //     setState(() {
