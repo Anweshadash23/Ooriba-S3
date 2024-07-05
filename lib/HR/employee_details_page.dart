@@ -390,6 +390,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   Widget _buildDetailRow(String label, String key,
       {bool isNumber = false,
       bool isEmail = false,
+      bool isMandatory = false,
       String? Function(String?)? validator}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -398,9 +399,22 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
         children: <Widget>[
           Container(
             width: 150,
-            child: Text(
-              '$label: ',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            child: RichText(
+              text: TextSpan(
+                text: '$label: ',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                children: isMandatory
+                    ? [
+                        TextSpan(
+                          text: '*',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ]
+                    : [],
+              ),
             ),
           ),
           Expanded(
@@ -555,7 +569,8 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     );
   }
 
-  Widget _buildDropdownRow(String label, String key, List<String> options) {
+  Widget _buildDropdownRow(String label, String key, List<String> options,
+      {bool isMandatory = false, String? Function(String?)? validator}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -563,9 +578,22 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
         children: <Widget>[
           Container(
             width: 150,
-            child: Text(
-              '$label: ',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            child: RichText(
+              text: TextSpan(
+                text: '$label',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                children: isMandatory
+                    ? [
+                        TextSpan(
+                          text: '*',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ]
+                    : [],
+              ),
             ),
           ),
           Expanded(
@@ -584,10 +612,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                         child: Text(value),
                       );
                     }).toList(),
-                    validator: (value) {
-                      // Remove mandatory validation for dropdowns
-                      return null;
-                    },
+                    validator: validator,
                   )
                 : Text(employeeData[key] ?? ''),
           ),
@@ -638,14 +663,16 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
             _buildCategory(
               'Personal Information',
               [
-                _buildDetailRow('First Name', 'firstName', validator: (value) {
+                _buildDetailRow('First Name', 'firstName', isMandatory: true,
+                    validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'First name is required';
                   }
                   return null;
                 }),
                 _buildDetailRow('Middle Name', 'middleName'),
-                _buildDetailRow('Last Name', 'lastName', validator: (value) {
+                _buildDetailRow('Last Name', 'lastName', isMandatory: true,
+                    validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Last name is required';
                   }
@@ -654,25 +681,27 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                 _buildDetailRow('Email', 'email',
                     isEmail: true, validator: _validateEmail),
                 _buildDetailRow('Phone Number', 'phoneNo',
-                    isNumber: true, validator: _validatePhoneNumber),
+                    isNumber: true,
+                    isMandatory: true,
+                    validator: _validatePhoneNumber),
                 _buildDetailRow('Date of Birth', 'dob',
-                    validator: _validateDateOfBirth),
+                    isMandatory: true, validator: _validateDateOfBirth),
                 _buildDetailRow('Permanent Address', 'permanentAddress',
-                    validator: (value) {
+                    isMandatory: true, validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Permanent address is required';
                   }
                   return null;
                 }),
                 _buildDetailRow('Residential Address', 'residentialAddress',
-                    validator: (value) {
+                    isMandatory: true, validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Residential address is required';
                   }
                   return null;
                 }),
                 _buildDetailRow('Aadhar Number', 'aadharNo',
-                    validator: _validateAadharNumber),
+                    isMandatory: true, validator: _validateAadharNumber),
                 _buildDetailRow('PAN Number', 'panNo',
                     validator: _validatePanNumber),
                 _buildImageRow('Profile Picture', 'dpImageUrl'),
@@ -688,10 +717,20 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                   children: <Widget>[
                     Container(
                       width: 150,
-                      child: Text(
-                        'Joining Date*: ',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.red),
+                      child: RichText(
+                        text: TextSpan(
+                          text: 'Joining Date: ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: '*',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     Expanded(
@@ -700,6 +739,9 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                               controller: _joiningDateController,
                               readOnly: true,
                               onTap: () => _selectDate(context),
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                              ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return 'Joining date is required';
@@ -708,20 +750,29 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                               },
                             )
                           : Text(
-                              employeeData['joiningDate'] ?? 'N/A',
+                              employeeData['joiningDate'] ?? '',
                               style: TextStyle(color: Colors.black87),
                             ),
                     ),
                   ],
                 ),
               ),
-              _buildDropdownRow('Department', 'department', [
-                'Sales',
-                'Services',
-                'Spares',
-                'Administration',
-                'Board of Directors'
-              ]),
+              _buildDropdownRow(
+                  'Department',
+                  'department',
+                  [
+                    'Sales',
+                    'Services',
+                    'Spares',
+                    'Administration',
+                    'Board of Directors'
+                  ],
+                  isMandatory: true, validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Designation is required';
+                }
+                return null;
+              }),
               _buildDropdownRow('Designation', 'designation', [
                 'Manager',
                 'Senior Engineer',
@@ -732,7 +783,13 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
               _buildDropdownRow(
                   'Employee Type', 'employeeType', ['On-site', 'Off-site']),
               _buildDropdownRow(
-                  'Location', 'location', ['Jeypore', 'Berhampur', 'Raigada']),
+                  'Location', 'location', ['Jeypore', 'Berhampur', 'Raigada'],
+                  isMandatory: true, validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Location is required';
+                }
+                return null;
+              }),
             ]),
             _buildCategory('Bank Details', [
               _buildDetailRow('Bank Name', 'bankName'),

@@ -21,6 +21,7 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
   final _middleName = TextEditingController();
   final _lastName = TextEditingController();
   final _email = TextEditingController();
+  final _password = TextEditingController();
   final _panNo = TextEditingController();
   final _residentialAddress = TextEditingController();
   final _permanentAddress = TextEditingController();
@@ -47,12 +48,30 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
     }
   }
 
+  Future<User?> _createUserWithEmailAndPassword(
+      String email, String password) async {
+    try {
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to create user: $e')),
+      );
+      return null;
+    }
+  }
+
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       final firstName = _firstName.text;
       final middleName = _middleName.text;
       final lastName = _lastName.text;
       final email = _email.text.isNotEmpty ? _email.text : null;
+      final password = _password.text;
       var panNo = _panNo.text.isNotEmpty ? _panNo.text.toUpperCase() : null;
       final resAdd = _residentialAddress.text;
       final perAdd = _permanentAddress.text;
@@ -61,30 +80,41 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
       var aadharNo = _aadharNo.text.replaceAll(' ', '');
 
       try {
-        // Add employee data to Firestore
-        await _employeeService.addEmployee(
-          firstName,
-          middleName,
-          lastName,
-          email,
-          panNo,
-          resAdd,
-          perAdd,
-          phoneNumber,
-          dob,
-          aadharNo,
-          dpImage,
-          adhaarImage,
-          supportImage,
-          context,
-        );
+        // Create user in Firebase Authentication
+        final User? user =
+            await _createUserWithEmailAndPassword(email!, password);
 
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Employee added successfully')),
-        );
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => const ConfirmationPage()));
+        if (user != null) {
+          // Add employee data to Firestore
+          await _employeeService.addEmployee(
+            firstName,
+            middleName,
+            lastName,
+            email,
+            panNo,
+            resAdd,
+            perAdd,
+            phoneNumber,
+            dob,
+            aadharNo,
+            password,
+            dpImage,
+            adhaarImage,
+            supportImage,
+            context,
+          );
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Employee added successfully')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content:
+                    Text('Failed to create user in Firebase Authentication')),
+          );
+        }
       } catch (e) {
         // Handle any errors
         ScaffoldMessenger.of(context).showSnackBar(
@@ -103,7 +133,7 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
       children: [
         Text(
           text,
-          style: const TextStyle(color: Colors.red),
+          style: const TextStyle(color: Colors.black),
         ),
         const Text(
           '*',
@@ -151,12 +181,11 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                             fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 20),
-                      _buildMandatoryText('First Name'),
+                      LabelWithStar(label: 'First Name'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _firstName,
                         decoration: const InputDecoration(
-                          labelText: 'First Name',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -172,29 +201,7 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 20),
-                      _buildMandatoryText('Last Name'),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _lastName,
-                        decoration: const InputDecoration(
-                          labelText: 'Last Name',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your last name';
-                          }
-                          if (value.length > 50) {
-                            return 'Last name cannot exceed 50 characters';
-                          }
-                          if (RegExp(r'[^a-zA-Z.\s]').hasMatch(value)) {
-                            return 'Last name can only contain letters and dot(.)';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
                       TextFormField(
                         controller: _middleName,
                         decoration: const InputDecoration(
@@ -212,6 +219,27 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         },
                       ),
                       const SizedBox(height: 20),
+                      LabelWithStar(label: 'Last Name'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _lastName,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your last name';
+                          }
+                          if (value.length > 50) {
+                            return 'Last name cannot exceed 50 characters';
+                          }
+                          if (RegExp(r'[^a-zA-Z.\s]').hasMatch(value)) {
+                            return 'Last name can only contain letters and dot(.)';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 8),
                       TextFormField(
                         controller: _email,
                         decoration: const InputDecoration(
@@ -230,12 +258,32 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      _buildMandatoryText('Phone Number'),
+                      LabelWithStar(label: 'Password'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _password,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                        ),
+                        obscureText: true,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your password';
+                          }
+                          if (!RegExp(
+                                  r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$')
+                              .hasMatch(value)) {
+                            return 'Password must contain an uppercase letter, a number, and a special character';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      LabelWithStar(label: 'Phone Number'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _phoneNumber,
                         decoration: const InputDecoration(
-                          labelText: 'Phone Number',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -252,12 +300,11 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      _buildMandatoryText('Residential Address'),
+                      LabelWithStar(label: 'Residential Address'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _residentialAddress,
                         decoration: const InputDecoration(
-                          labelText: 'Residential Address',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -268,12 +315,11 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      _buildMandatoryText('Permanent Address'),
+                      LabelWithStar(label: 'Permanent Address'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _permanentAddress,
                         decoration: const InputDecoration(
-                          labelText: 'Permanent Address',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -301,7 +347,7 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildMandatoryText('Date of Birth'),
+                            LabelWithStar(label: 'Date of Birth'),
                             const SizedBox(height: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -352,12 +398,11 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      _buildMandatoryText('Aadhaar Number'),
+                      LabelWithStar(label: 'Aadhaar Number'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _aadharNo,
                         decoration: const InputDecoration(
-                          labelText: 'Aadhaar Number',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -402,6 +447,27 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class LabelWithStar extends StatelessWidget {
+  final String label;
+  const LabelWithStar({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.black),
+        ),
+        const Text(
+          '*',
+          style: TextStyle(color: Colors.red, fontSize: 16),
+        ),
+      ],
     );
   }
 }

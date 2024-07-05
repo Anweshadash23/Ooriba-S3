@@ -18,6 +18,7 @@ class AddEmployeeService {
     String phoneNumber,
     String dob,
     String aadharNo,
+    String password, // Added password parameter
     File? dpImage,
     File? adhaarImage,
     File? supportImage,
@@ -31,8 +32,8 @@ class AddEmployeeService {
       String? supportImageUrl =
           await _uploadImage(supportImage, 'supportImages/$phoneNumber');
 
-      // Save employee data to Firestore
-      await _firestore.collection('Regemp').add({
+      // Save employee data to Firestore with phone number as document ID
+      await _firestore.collection('Regemp').doc(phoneNumber).set({
         'firstName': firstName,
         'middleName': middleName,
         'lastName': lastName,
@@ -43,6 +44,7 @@ class AddEmployeeService {
         'phoneNumber': phoneNumber,
         'dob': dob,
         'aadharNo': aadharNo,
+        'password': password, // Store password in Firestore
         'dpImageUrl': dpImageUrl,
         'adhaarImageUrl': adhaarImageUrl,
         'supportImageUrl': supportImageUrl,

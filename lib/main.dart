@@ -6,6 +6,7 @@ import 'package:ooriba/firebase_options.dart';
 import 'package:ooriba/post_login_page.dart';
 import 'package:ooriba/services/auth_service.dart';
 import 'package:ooriba/services/dark_mode.dart';
+import 'package:ooriba/services/forgot_pass_service.dart';
 import 'package:ooriba/signup_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -171,12 +172,7 @@ class LoginPage extends StatelessWidget {
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        const HRDashboardPage()),
-                              );
+                              _showForgotPasswordDialog(context);
                             },
                             child: const Text('Forgot Password'),
                           ),
@@ -233,6 +229,51 @@ class LoginPage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  void _showForgotPasswordDialog(BuildContext context) {
+    final TextEditingController emailController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Reset Password'),
+          content: TextField(
+            controller: emailController,
+            decoration: const InputDecoration(
+              labelText: 'Enter your email',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final email = emailController.text;
+                if (email.isNotEmpty) {
+                  await ForgetPassService()
+                      .sendPasswordResetEmail(email, context);
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Please enter an email address'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Reset Password'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
