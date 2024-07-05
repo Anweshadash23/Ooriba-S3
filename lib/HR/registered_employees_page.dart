@@ -396,7 +396,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
                 'Executive'
               ]),
               _buildDropdown('Location', _selectedLocation,
-                  ['Jaypore', 'Berhampur', 'Raigada']),
+                  ['Jaypore', 'Berhampur', 'Rayagada']),
               _buildDropdown('Status', _selectedStatus, ['Active', 'Inactive']),
               _buildDropdown('Role', _selectedRole, ['Standard', 'HR']),
               _buildDropdown('Employee Type', _selectedEmployeeType,

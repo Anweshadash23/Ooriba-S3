@@ -11,6 +11,7 @@ import 'package:ooriba/services/reject_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 // import 'package:emailjs/emailjs.dart';
 // import 'package:sms_advanced/sms_advanced.dart';
 
@@ -118,43 +119,29 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   void _saveDetails() async {
     if (_formKey.currentState!.validate()) {
       try {
-        // Generate a new employee ID
-        final employeeId = await _idGenerator.generateEmployeeId();
+        // Generate a new employee ID based on location
+        final location = employeeData[
+            'location']; // Assuming location is stored in employeeData
+        final employeeId = await _idGenerator.generateEmployeeId(location);
         employeeData['employeeId'] = employeeId;
 
-        print('Saving data: ${employeeData['email']} -> $employeeData');
+        // Save employee details to Firestore
         await FirebaseFirestore.instance
             .collection('Regemp')
-            .doc(employeeData['phoneNo'])
+            .doc(employeeData[
+                'phoneNo']) // Assuming 'phoneNo' is the document ID
             .set(employeeData);
 
-        // Delete the employee from the "Employee" collection
-        await FirebaseFirestore.instance
-            .collection('Employee')
-            .doc(employeeData['phoneNo'])
-            .delete();
-
-        // Send SMS
-        // SmsSender sender = SmsSender();
-        // String phoneNumber = employeeData['phoneNo'];
-        // String message =
-        //     'Your employee details have been saved successfully. Your employee ID is $employeeId.';
-        // SmsMessage smsMessage = SmsMessage(phoneNumber, message);
-        // smsMessage.onStateChanged.listen((state) {
-        //   if (state == SmsMessageState.Sent) {
-        //     print("SMS is sent!");
-        //   } else if (state == SmsMessageState.Delivered) {
-        //     print("SMS is delivered!");
-        //   } else if (state == SmsMessageState.Fail) {
-        //     print("Failed to send SMS.");
-        //   }
-        // });
-        // sender.sendSms(smsMessage);
+        // Optionally delete from another collection
+        // await FirebaseFirestore.instance
+        //     .collection('Employee')
+        //     .doc(employeeData['phoneNo'])
+        //     .delete();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(
-                  'Employee details updated, deleted from the Employee collection, and email sent successfully')),
+            content: Text('Employee details updated and saved successfully'),
+          ),
         );
         setState(() {
           isEditing = false;
@@ -162,7 +149,9 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       } catch (e) {
         print('Error saving employee data: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update employee details: $e')),
+          SnackBar(
+            content: Text('Failed to update employee details: $e'),
+          ),
         );
       }
     }
@@ -783,7 +772,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
               _buildDropdownRow(
                   'Employee Type', 'employeeType', ['On-site', 'Off-site']),
               _buildDropdownRow(
-                  'Location', 'location', ['Jeypore', 'Berhampur', 'Raigada'],
+                  'Location', 'location', ['Jeypore', 'Berhampur', 'Rayagada'],
                   isMandatory: true, validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Location is required';
