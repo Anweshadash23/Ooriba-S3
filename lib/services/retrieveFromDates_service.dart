@@ -20,8 +20,7 @@ class DateService {
           return MapEntry(email, {
             'checkIn':
                 checkIn.toString(), // Convert to desired format if necessary
-            'checkOut':
-                checkOut.toString(), // Convert to desired format if necessary
+            'checkOut': checkOut.toString(),
           });
         });
       } else {

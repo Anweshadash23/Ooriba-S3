@@ -3,42 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:ooriba/employee_signup_success.dart';
-import 'package:ooriba/services/employeeService.dart';
+import 'package:ooriba/services/add_employee_service.dart';
 import 'dart:io';
 
-// Custom widget to display label with red star
-class LabelWithStar extends StatelessWidget {
-  final String text;
-
-  const LabelWithStar({Key? key, required this.text}) : super(key: key);
+class AddEmployeePage extends StatefulWidget {
+  const AddEmployeePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          text,
-          style: const TextStyle(
-            color: Colors.black,
-          ),
-        ),
-        const Text(
-          '*',
-          style: TextStyle(color: Colors.red, fontSize: 16),
-        ),
-      ],
-    );
-  }
+  _AddEmployeePageState createState() => _AddEmployeePageState();
 }
 
-class SignUpPage extends StatefulWidget {
-  const SignUpPage({super.key});
-
-  @override
-  _SignUpPageState createState() => _SignUpPageState();
-}
-
-class _SignUpPageState extends State<SignUpPage> {
+class _AddEmployeePageState extends State<AddEmployeePage> {
   final _formKey = GlobalKey<FormState>();
   DateTime? _dob;
   final _phoneNumber = TextEditingController();
@@ -46,25 +21,24 @@ class _SignUpPageState extends State<SignUpPage> {
   final _middleName = TextEditingController();
   final _lastName = TextEditingController();
   final _email = TextEditingController();
-  final _password = TextEditingController();
   final _panNo = TextEditingController();
   final _residentialAddress = TextEditingController();
   final _permanentAddress = TextEditingController();
   final _aadharNo = TextEditingController();
   File? dpImage, supportImage, adhaarImage;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final EmployeeService _employeeService = EmployeeService();
+  final AddEmployeeService _employeeService = AddEmployeeService();
 
   Future<void> _pickImage(int x) async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
-        if (x == 1) {
-          adhaarImage = File(pickedFile.path);
-        }
         if (x == 2) {
           dpImage = File(pickedFile.path);
+        }
+        if (x == 1) {
+          adhaarImage = File(pickedFile.path);
         }
         if (x == 3) {
           supportImage = File(pickedFile.path);
@@ -79,10 +53,7 @@ class _SignUpPageState extends State<SignUpPage> {
       final middleName = _middleName.text;
       final lastName = _lastName.text;
       final email = _email.text.isNotEmpty ? _email.text : null;
-      final password = _password.text; // Add password field
-      var panNo = _panNo.text.isNotEmpty
-          ? _panNo.text.toUpperCase()
-          : null; // Make PAN optional
+      var panNo = _panNo.text.isNotEmpty ? _panNo.text.toUpperCase() : null;
       final resAdd = _residentialAddress.text;
       final perAdd = _permanentAddress.text;
       final phoneNumber = _phoneNumber.text;
@@ -96,7 +67,6 @@ class _SignUpPageState extends State<SignUpPage> {
           middleName,
           lastName,
           email,
-          password,
           panNo,
           resAdd,
           perAdd,
@@ -106,33 +76,48 @@ class _SignUpPageState extends State<SignUpPage> {
           dpImage,
           adhaarImage,
           supportImage,
-          context: context,
+          context,
         );
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signed up successfully')),
+          const SnackBar(content: Text('Employee added successfully')),
         );
         Navigator.push(context,
             MaterialPageRoute(builder: (context) => const ConfirmationPage()));
       } catch (e) {
         // Handle any errors
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to sign up: $e')),
+          SnackBar(content: Text('Failed to add employee: $e')),
         );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please verify your phone number')),
+        const SnackBar(content: Text('Please fill out the form correctly')),
       );
     }
+  }
+
+  Widget _buildMandatoryText(String text) {
+    return Row(
+      children: [
+        Text(
+          text,
+          style: const TextStyle(color: Colors.red),
+        ),
+        const Text(
+          '*',
+          style: TextStyle(color: Colors.red, fontSize: 16),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sign Up'),
+        title: const Text('Add Employee'),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -140,7 +125,7 @@ class _SignUpPageState extends State<SignUpPage> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(
-                maxWidth: 400, // Limit the width for larger screens
+                maxWidth: 400,
               ),
               child: Container(
                 padding: const EdgeInsets.all(16.0),
@@ -161,16 +146,17 @@ class _SignUpPageState extends State<SignUpPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
                       const Text(
-                        'Sign Up',
+                        'Add Employee',
                         style: TextStyle(
                             fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 20),
-                      LabelWithStar(text: 'First Name'),
+                      _buildMandatoryText('First Name'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _firstName,
                         decoration: const InputDecoration(
+                          labelText: 'First Name',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -182,6 +168,28 @@ class _SignUpPageState extends State<SignUpPage> {
                           }
                           if (RegExp(r'[^a-zA-Z.\s]').hasMatch(value)) {
                             return 'First name can only contain letters and dot(.)';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildMandatoryText('Last Name'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _lastName,
+                        decoration: const InputDecoration(
+                          labelText: 'Last Name',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your last name';
+                          }
+                          if (value.length > 50) {
+                            return 'Last name cannot exceed 50 characters';
+                          }
+                          if (RegExp(r'[^a-zA-Z.\s]').hasMatch(value)) {
+                            return 'Last name can only contain letters and dot(.)';
                           }
                           return null;
                         },
@@ -204,31 +212,10 @@ class _SignUpPageState extends State<SignUpPage> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      LabelWithStar(text: 'Last Name'),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _lastName,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your last name';
-                          }
-                          if (value.length > 50) {
-                            return 'Last name cannot exceed 50 characters';
-                          }
-                          if (RegExp(r'[^a-zA-Z.\s]').hasMatch(value)) {
-                            return 'Last name can only contain letters and dot(.)';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
                       TextFormField(
                         controller: _email,
                         decoration: const InputDecoration(
-                          labelText: 'Email ID',
+                          labelText: 'Email',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -243,32 +230,12 @@ class _SignUpPageState extends State<SignUpPage> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      LabelWithStar(text: 'Password'),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _password,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                        ),
-                        obscureText: true,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          if (!RegExp(
-                                  r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$')
-                              .hasMatch(value)) {
-                            return 'Password must contain an uppercase letter, a number, and a special character';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      LabelWithStar(text: 'Phone Number'),
+                      _buildMandatoryText('Phone Number'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _phoneNumber,
                         decoration: const InputDecoration(
+                          labelText: 'Phone Number',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -285,11 +252,12 @@ class _SignUpPageState extends State<SignUpPage> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      LabelWithStar(text: 'Residential Address'),
+                      _buildMandatoryText('Residential Address'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _residentialAddress,
                         decoration: const InputDecoration(
+                          labelText: 'Residential Address',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -300,11 +268,12 @@ class _SignUpPageState extends State<SignUpPage> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      LabelWithStar(text: 'Permanent Address'),
+                      _buildMandatoryText('Permanent Address'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _permanentAddress,
                         decoration: const InputDecoration(
+                          labelText: 'Permanent Address',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -332,7 +301,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            LabelWithStar(text: 'Date of Birth'),
+                            _buildMandatoryText('Date of Birth'),
                             const SizedBox(height: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -383,11 +352,12 @@ class _SignUpPageState extends State<SignUpPage> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      LabelWithStar(text: 'Aadhaar Number'),
+                      _buildMandatoryText('Aadhaar Number'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _aadharNo,
                         decoration: const InputDecoration(
+                          labelText: 'Aadhaar Number',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -422,7 +392,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: _submitForm,
-                        child: const Text('Sign Up'),
+                        child: const Text('Save'),
                       ),
                     ],
                   ),

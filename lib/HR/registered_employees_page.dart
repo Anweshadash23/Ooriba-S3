@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
 
 class RegisteredEmployeesPage extends StatefulWidget {
+  const RegisteredEmployeesPage({super.key});
+
   @override
   _RegisteredEmployeesPageState createState() =>
       _RegisteredEmployeesPageState();
@@ -10,27 +11,60 @@ class RegisteredEmployeesPage extends StatefulWidget {
 
 class _RegisteredEmployeesPageState extends State<RegisteredEmployeesPage> {
   @override
+  // Widget build(BuildContext context) {
+  //   return Scaffold(
+  //     appBar: AppBar(
+  //       title: Text('Registered Employees'),
+  //     ),
+  //     body: StreamBuilder<QuerySnapshot>(
+  //       stream: FirebaseFirestore.instance.collection('Regemp').snapshots(),
+  //       builder: (context, snapshot) {
+  //         if (snapshot.connectionState == ConnectionState.waiting) {
+  //           return Center(child: CircularProgressIndicator());
+  //         } else if (snapshot.hasError) {
+  //           return Center(child: Text('Error: ${snapshot.error}'));
+  //         } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+  //           return Center(child: Text('No registered employees found'));
+  //         }
+
+  //         final employees = snapshot.data!.docs;
+  //         return ListView.builder(
+  //           itemCount: employees.length,
+  //           itemBuilder: (context, index) {
+  //             final data = employees[index].data() as Map<String, dynamic>;
+  //             return EmployeeCard(data: data);
+  //           },
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Registered Employees'),
+        title: const Text('Registered Employees'),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('Regemp').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No registered employees found'));
+            return const Center(child: Text('No registered employees found'));
           }
 
           final employees = snapshot.data!.docs;
+          final filteredEmployees = employees.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return data['role'] != 'HR';
+          }).toList();
+
+          if (filteredEmployees.isEmpty) {
+            return const Center(child: Text('No registered employees found'));
+          }
+
           return ListView.builder(
-            itemCount: employees.length,
+            itemCount: filteredEmployees.length,
             itemBuilder: (context, index) {
-              final data = employees[index].data() as Map<String, dynamic>;
+              final data =
+                  filteredEmployees[index].data() as Map<String, dynamic>;
               return EmployeeCard(data: data);
             },
           );
@@ -43,14 +77,14 @@ class _RegisteredEmployeesPageState extends State<RegisteredEmployeesPage> {
 class EmployeeCard extends StatelessWidget {
   final Map<String, dynamic> data;
 
-  const EmployeeCard({Key? key, required this.data}) : super(key: key);
+  const EmployeeCard({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -59,34 +93,51 @@ class EmployeeCard extends StatelessWidget {
                 CircleAvatar(
                   radius: 30.0,
                   backgroundColor: Colors.purple[100],
-                  child: Text(
-                    '${data['firstName'][0]}${data['lastName'][0]}',
-                    style: TextStyle(
-                      fontSize: 24.0,
-                      color: Colors.white,
-                    ),
-                  ),
+                  backgroundImage: data['dpImageUrl'] != null &&
+                          data['dpImageUrl'].isNotEmpty
+                      ? NetworkImage(data['dpImageUrl'])
+                      : null,
+                  child:
+                      data['dpImageUrl'] == null || data['dpImageUrl'].isEmpty
+                          ? Text(
+                              '${data['firstName'][0]}${data['lastName'][0]}',
+                              style: const TextStyle(
+                                fontSize: 24.0,
+                                color: Colors.white,
+                              ),
+                            )
+                          : null,
                 ),
-                SizedBox(width: 16.0),
+                //   radius: 30.0,
+                //   backgroundColor: Colors.purple[100],
+                //   child: Text(
+                //     '${data['firstName'][0]}${data['lastName'][0]}',
+                //     style: TextStyle(
+                //       fontSize: 24.0,
+                //       color: Colors.white,
+                //     ),
+                //   ),
+                // ),
+                const SizedBox(width: 16.0),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      '${data['employeeId']} - ${data['firstName']} ${data['lastName']}',
-                      style: TextStyle(
+                      '${data['firstName']} ${data['lastName']}',
+                      style: const TextStyle(
                         fontSize: 18.0,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 4.0),
-                    Text('Department: ${data['Department']}'),
-                    Text('Designation: ${data['Designation']}'),
-                    // Text('Employee Type: ${data['employeeType']}'),
+                    const SizedBox(height: 4.0),
+                    Text('Phone: ${data['phoneNo']}'),
+                    Text('Email: ${data['email']}'),
+                    Text('Employee Type: ${data['employeeType']}'),
                   ],
                 ),
               ],
             ),
-            SizedBox(height: 16.0),
+            const SizedBox(height: 16.0),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
@@ -102,7 +153,7 @@ class EmployeeCard extends StatelessWidget {
                       },
                     );
                   },
-                  child: Text(
+                  child: const Text(
                     'View More',
                     style: TextStyle(color: Colors.white),
                   ),
@@ -119,7 +170,7 @@ class EmployeeCard extends StatelessWidget {
 class EmployeeDetailsDialog extends StatefulWidget {
   final Map<String, dynamic> data;
 
-  const EmployeeDetailsDialog({Key? key, required this.data}) : super(key: key);
+  const EmployeeDetailsDialog({super.key, required this.data});
 
   @override
   _EmployeeDetailsDialogState createState() => _EmployeeDetailsDialogState();
@@ -155,7 +206,6 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
   String _selectedEmployeeType = '';
 
   final Map<String, String> _validationErrors = {};
-  final DateFormat _dateFormatter = DateFormat('dd/MM/yyyy');
 
   @override
   void initState() {
@@ -308,7 +358,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       child: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,7 +396,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
                 'Executive'
               ]),
               _buildDropdown('Location', _selectedLocation,
-                  ['Jeypore', 'Berhampur', 'Raigada']),
+                  ['Jaypore', 'Berhampur', 'Raigada']),
               _buildDropdown('Status', _selectedStatus, ['Active', 'Inactive']),
               _buildDropdown('Role', _selectedRole, ['Standard', 'HR']),
               _buildDropdown('Employee Type', _selectedEmployeeType,
@@ -358,13 +408,13 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: _validationErrors.entries.map((entry) {
                       return Text(
-                        '${entry.value}',
-                        style: TextStyle(color: Colors.red),
+                        entry.value,
+                        style: const TextStyle(color: Colors.red),
                       );
                     }).toList(),
                   ),
                 ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: <Widget>[
@@ -425,10 +475,10 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
                     },
                     child: Text(
                       _isEditing ? 'Save' : 'Edit',
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
-                  SizedBox(width: 8.0),
+                  const SizedBox(width: 8.0),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
@@ -436,7 +486,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
-                    child: Text(
+                    child: const Text(
                       'Close',
                       style: TextStyle(color: Colors.white),
                     ),
@@ -460,7 +510,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
         readOnly: !_isEditing,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(),
+          border: const OutlineInputBorder(),
         ),
       ),
     );
@@ -473,7 +523,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(),
+          border: const OutlineInputBorder(),
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
@@ -518,7 +568,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
 }
 
 void main() {
-  runApp(MaterialApp(
+  runApp(const MaterialApp(
     home: RegisteredEmployeesPage(),
   ));
 }

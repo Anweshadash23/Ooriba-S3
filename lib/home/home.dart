@@ -1,7 +1,8 @@
+import 'package:ooriba/facial/RegistrationScreen.dart';
 import 'package:ooriba/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:google_fonts/google_fonts.dart'; // Import registration screen
 
 class Home extends StatelessWidget {
   const Home({super.key});
@@ -19,10 +20,12 @@ class Home extends StatelessWidget {
               Text(
                 'Hello👋',
                 style: GoogleFonts.raleway(
-                    textStyle: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20)),
+                  textStyle: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
               ),
               const SizedBox(
                 height: 10,
@@ -30,15 +33,21 @@ class Home extends StatelessWidget {
               Text(
                 FirebaseAuth.instance.currentUser!.email!.toString(),
                 style: GoogleFonts.raleway(
-                    textStyle: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20)),
+                  textStyle: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
               ),
               const SizedBox(
                 height: 30,
               ),
-              _logout(context)
+              _logout(context),
+              const SizedBox(
+                height: 20,
+              ),
+              _navigateToRegistration(context),
             ],
           ),
         ),
@@ -60,6 +69,26 @@ class Home extends StatelessWidget {
         await AuthService().signout(context: context);
       },
       child: const Text("Sign Out"),
+    );
+  }
+
+  Widget _navigateToRegistration(BuildContext context) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xff0D6EFD),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        minimumSize: const Size(double.infinity, 60),
+        elevation: 0,
+      ),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const RegistrationScreen()),
+        );
+      },
+      child: const Text("Go to Registration"),
     );
   }
 }

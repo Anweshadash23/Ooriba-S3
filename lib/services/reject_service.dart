@@ -12,13 +12,13 @@ class RejectService {
       // Save the employee data with the reason in the RejectedEmp collection
       await _firestore
           .collection('RejectedEmp')
-          .doc(employeeData['email'])
+          .doc(employeeData['phoneNo'])
           .set(employeeData);
 
       // Delete the employee from the Employee collection
       await _firestore
           .collection('Employee')
-          .doc(employeeData['email'])
+          .doc(employeeData['phoneNo'])
           .delete();
     } catch (e) {
       throw Exception('Failed to reject employee: $e');

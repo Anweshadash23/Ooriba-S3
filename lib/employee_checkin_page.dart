@@ -1,20 +1,25 @@
-//EmailJS
+// EmailJS
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:ooriba/services/auth_service.dart';
 import 'package:ooriba/services/updateEmployee.dart';
+import 'package:ooriba/services/retrieveDataByPhoneNumber.dart'
+    as retrieveDataByPhoneNumber; // Updated import
 
 class EmployeeCheckInPage extends StatefulWidget {
   final String empname;
-  final String empemail;
+  final String empphoneNumber; // Updated property
 
-  const EmployeeCheckInPage(
-      {super.key, required this.empname, required this.empemail});
+  const EmployeeCheckInPage({
+    super.key,
+    required this.empname,
+    required this.empphoneNumber,
+  });
 
   @override
-  // ignore: library_private_types_in_public_api
   _EmployeeCheckInPageState createState() => _EmployeeCheckInPageState();
 }
 
@@ -24,23 +29,50 @@ class CheckInOutRecord {
   DateTime? checkInTime;
   DateTime? checkOutTime;
 
-  CheckInOutRecord(
-      {required this.date,
-      this.isCheckedIn = false,
-      this.checkInTime,
-      this.checkOutTime});
+  CheckInOutRecord({
+    required this.date,
+    this.isCheckedIn = false,
+    this.checkInTime,
+    this.checkOutTime,
+  });
 }
 
 class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
+  String? employeeId;
+  String? employeeName;
   late DateTime dataDate;
   late List<CheckInOutRecord> checkInOutRecords;
-  late String _email;
+  late String _phoneNumber; // Updated property
 
   @override
   void initState() {
     super.initState();
-    _email = widget.empemail;
+    _phoneNumber = widget.empphoneNumber; // Initialize with phone number
     checkInOutRecords = _generateCheckInOutRecords();
+    _fetchEmployeeDetails(widget.empphoneNumber); // Call with phone number
+  }
+
+  String formatTimeWithoutSeconds(DateTime? dateTime) {
+    if (dateTime == null) {
+      return 'N/A'; // Return 'N/A' if dateTime is null
+    }
+    return DateFormat('yyyy-MM-dd HH:mm')
+        .format(dateTime); // Format without seconds
+  }
+
+  Future<void> _fetchEmployeeDetails(String phoneNumber) async {
+    retrieveDataByPhoneNumber.FirestoreService firestoreService =
+        retrieveDataByPhoneNumber.FirestoreService();
+    Map<String, dynamic>? employeeData =
+        await firestoreService.getEmployeeByPhoneNumber(phoneNumber);
+
+    if (employeeData != null) {
+      setState(() {
+        employeeId = employeeData['employeeId'];
+        employeeName = employeeData['firstName'];
+        // employeeName = employeeData['firstName'] + ' ' + employeeData['lastName'];
+      });
+    }
   }
 
   List<CheckInOutRecord> _generateCheckInOutRecords() {
@@ -48,43 +80,46 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
     List<CheckInOutRecord> records = [];
     DateTime now = DateTime.now();
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 1; i++) {
       DateTime date = now.subtract(Duration(days: i));
       // Dummy logic to alternate check-in and check-out for demonstration
       bool isCheckedIn = i.isOdd;
-      DateTime? checkInTime = isCheckedIn ? date.add(Duration(hours: 9)) : null;
+      DateTime? checkInTime =
+          isCheckedIn ? date.add(const Duration(hours: 8)) : null;
       DateTime? checkOutTime =
-          isCheckedIn ? null : date.add(Duration(hours: 18));
+          isCheckedIn ? null : date.add(const Duration(hours: 8));
 
       records.add(CheckInOutRecord(
-          date: date,
-          isCheckedIn: isCheckedIn,
-          checkInTime: checkInTime,
-          checkOutTime: checkOutTime));
+        date: date,
+        isCheckedIn: isCheckedIn,
+        checkInTime: checkInTime,
+        checkOutTime: checkOutTime,
+      ));
     }
     return records;
   }
 
   void _toggleCheckInOut(int index) async {
-    final FirestoreService _firestoreService = FirestoreService();
-    void _addData() async {
+    final FirestoreService firestoreService = FirestoreService();
+    void addData() async {
       if (widget.empname.isNotEmpty) {
         setState(() {});
 
-        await _firestoreService.addCheckInOutData(
-            widget.empemail,
-            checkInOutRecords[index].checkInTime!,
-            checkInOutRecords[index].checkOutTime!,
-            dataDate);
+        await firestoreService.addCheckInOutData(
+          widget.empphoneNumber, // Use phone number instead of email
+          checkInOutRecords[index].checkInTime!,
+          checkInOutRecords[index].checkOutTime!,
+          dataDate,
+        );
 
         setState(() {});
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Data added successfully')),
+          const SnackBar(content: Text('Data added successfully')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please enter a first name')),
+          const SnackBar(content: Text('Please enter a first name')),
         );
       }
     }
@@ -98,21 +133,27 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
         checkInOutRecords[index].checkInTime = DateTime.now();
         checkInOutRecords[index].checkOutTime = null;
 
-        _sendCheckInEmail(widget.empname, widget.empemail,
-            checkInOutRecords[index].checkInTime!);
+        _sendCheckInEmail(
+          widget.empname,
+          widget.empphoneNumber,
+          checkInOutRecords[index].checkInTime!,
+        );
       } else {
         checkInOutRecords[index].checkOutTime = DateTime.now();
-        _addData();
-        _sendCheckOutEmail(widget.empname, widget.empemail,
-            checkInOutRecords[index].checkOutTime!);
+        addData();
+        _sendCheckOutEmail(
+          widget.empname,
+          widget.empphoneNumber,
+          checkInOutRecords[index].checkOutTime!,
+        );
       }
     });
     //update into database
   }
 
-  //email thing by emailJS
+  // EmailJS Integration
   Future<void> _sendCheckInEmail(
-      String empname, String empemail, DateTime checkInTime) async {
+      String empname, String empphoneNumber, DateTime checkInTime) async {
     const serviceId = 'service_qe69w28';
     const templateId = 'template_1owmygk';
     const userId = 'lMYaM2NpLYjm2qSWI';
@@ -129,7 +170,7 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
         'user_id': userId,
         'template_params': {
           'empname': empname,
-          'empemail': empemail,
+          'empphoneNumber': empphoneNumber,
           'check_in_time': checkInTime.toIso8601String(),
         }
       }),
@@ -147,7 +188,7 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
   }
 
   Future<void> _sendCheckOutEmail(
-      String empname, String empemail, DateTime checkOutTime) async {
+      String empname, String empphoneNumber, DateTime checkOutTime) async {
     const serviceId = 'service_qe69w28';
     const templateId = 'template_drhybtc';
     const userId = 'lMYaM2NpLYjm2qSWI';
@@ -162,7 +203,7 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
         'template_id': templateId,
         'user_id': userId,
         'template_params': {
-          'empemail': empemail,
+          'empphoneNumber': empphoneNumber,
           'empname': empname,
           'check_out_time': checkOutTime.toIso8601String(),
         }
@@ -184,10 +225,12 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Welcome, ${_email}'),
+        title: Text(
+          'Welcome, ${employeeId != null && employeeName != null ? '$employeeName-$employeeId' : widget.empphoneNumber}',
+        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.logout),
+            icon: const Icon(Icons.logout),
             onPressed: () async {
               await AuthService().signout(context: context);
             },
@@ -197,23 +240,24 @@ class _EmployeeCheckInPageState extends State<EmployeeCheckInPage> {
       body: ListView.builder(
         itemCount: checkInOutRecords.length,
         itemBuilder: (context, index) {
+          bool isCheckedIn = checkInOutRecords[index].isCheckedIn;
           return ListTile(
             title: Text(
-                'Date: ${checkInOutRecords[index].date.toLocal().toString().split(' ')[0]}'),
-            subtitle: checkInOutRecords[index].isCheckedIn
-                ? Text('Checked in at: ${checkInOutRecords[index].checkInTime}')
+              'Date: ${checkInOutRecords[index].date.toLocal().toString().split(' ')[0]}',
+            ),
+            subtitle: isCheckedIn
+                ? Text(
+                    'Checked in at: ${formatTimeWithoutSeconds(checkInOutRecords[index].checkInTime)}')
                 : Text(
-                    'Checked out at: ${checkInOutRecords[index].checkOutTime}'),
+                    'Checked out at: ${formatTimeWithoutSeconds(checkInOutRecords[index].checkOutTime)}'),
             trailing: ElevatedButton(
               onPressed: () => _toggleCheckInOut(index),
               style: ElevatedButton.styleFrom(
-                backgroundColor: checkInOutRecords[index].isCheckedIn
+                backgroundColor: isCheckedIn
                     ? Colors.green
-                    : Colors.red,
+                    : Colors.orange, // Set button color
               ),
-              child: checkInOutRecords[index].isCheckedIn
-                  ? const Text('Check Out')
-                  : const Text('Check In'),
+              child: Text(isCheckedIn ? 'Check Out' : 'Check In'),
             ),
           );
         },

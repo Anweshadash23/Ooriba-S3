@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RejectedEmployeesPage extends StatelessWidget {
-  const RejectedEmployeesPage({Key? key}) : super(key: key);
+  const RejectedEmployeesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -54,13 +54,13 @@ class RejectedEmployeeCard extends StatelessWidget {
   final String reason;
 
   const RejectedEmployeeCard({
-    Key? key,
+    super.key,
     required this.firstName,
     required this.lastName,
     required this.phone,
     required this.email,
     required this.reason, // Add reason parameter
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

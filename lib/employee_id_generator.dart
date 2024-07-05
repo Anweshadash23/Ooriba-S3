@@ -1,5 +1,4 @@
 // employee_id_generator.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EmployeeIdGenerator {

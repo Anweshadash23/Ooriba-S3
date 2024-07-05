@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:ooriba/main.dart';
 
 class ConfirmationPage extends StatelessWidget {
+  const ConfirmationPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        padding: EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
+        padding: const EdgeInsets.all(16.0),
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Colors.blue, Colors.lightBlueAccent],
             begin: Alignment.topLeft,
@@ -18,13 +20,13 @@ class ConfirmationPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Icon(
+              const Icon(
                 Icons.check_circle_outline,
                 color: Colors.white,
                 size: 100,
               ),
-              SizedBox(height: 30),
-              Text(
+              const SizedBox(height: 30),
+              const Text(
                 'Signed up successfully',
                 style: TextStyle(
                   color: Colors.white,
@@ -33,8 +35,8 @@ class ConfirmationPage extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 'Please wait for HR approval',
                 style: TextStyle(
                   color: Colors.white70,
@@ -42,31 +44,69 @@ class ConfirmationPage extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 40),
+              const SizedBox(height: 40),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginPage()),
-                  );
+                   Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+      );
                 },
                 style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.blue,
-                  backgroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  foregroundColor: Colors.blue, backgroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'HOME',
                   style: TextStyle(fontSize: 20),
                 ),
               ),
+      //         ElevatedButton(
+      //           onPressed: () {
+      //              Navigator.push(
+      //   context,
+      //   MaterialPageRoute(builder: (context) => RegistrationScreen()),
+      // );
+      //           },
+      //           style: ElevatedButton.styleFrom(
+      //             foregroundColor: Colors.blue, backgroundColor: Colors.white,
+      //             padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+      //             shape: RoundedRectangleBorder(
+      //               borderRadius: BorderRadius.circular(30),
+      //             ),
+      //           ),
+      //           child: Text(
+      //             'Go to Registration',
+      //             style: TextStyle(fontSize: 20),
+      //           ),
+      //         ),
+
             ],
           ),
         ),
       ),
     );
   }
+  //  Widget _navigateToRegistration(BuildContext context) {
+  //   return ElevatedButton(
+  //     style: ElevatedButton.styleFrom(
+  //       backgroundColor: const Color(0xff0D6EFD),
+  //       shape: RoundedRectangleBorder(
+  //         borderRadius: BorderRadius.circular(14),
+  //       ),
+  //       minimumSize: const Size(double.infinity, 60),
+  //       elevation: 0,
+  //     ),
+  //     onPressed: () {
+  //       Navigator.push(
+  //         context,
+  //         MaterialPageRoute(builder: (context) => RegistrationScreen()),
+  //       );
+  //     },
+  //     child: const Text("Go to Registration"),
+  //   );
+  // }
 }

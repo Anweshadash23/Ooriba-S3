@@ -1,11 +1,16 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'registered_service.dart';
+import 'package:ooriba/employee_id_generator.dart';
+import 'package:ooriba/services/accept_mail_service.dart';
+import 'package:ooriba/services/registered_service.dart';
+import 'package:ooriba/services/reject_service.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'services/reject_service.dart';
-import 'employee_id_generator.dart';
-import 'services/accept_mail_service.dart';
 // import 'package:emailjs/emailjs.dart';
 // import 'package:sms_advanced/sms_advanced.dart';
 
@@ -43,11 +48,64 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     }
   }
 
-  Future<void> _launchURL(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      throw 'Could not launch $url';
+  // Future<void> _launchURL(String url) async {
+  //   if (await canLaunch(url)) {
+  //     await launch(url);
+  //   } else {
+  //     throw 'Could not launch $url';
+  //   }
+  // }
+
+  Future<void> _downloadImage(String url, String fileName) async {
+    Dio dio = Dio();
+
+    // Request storage permission
+    PermissionStatus permissionStatus = await Permission.storage.request();
+    if (await Permission.storage.request().isGranted ||
+        await Permission.manageExternalStorage.request().isGranted) {
+      try {
+        // Get the downloads directory
+        Directory? downloadsDirectory = await getExternalStorageDirectory();
+        if (downloadsDirectory != null) {
+          // Find the Downloads directory path for the device
+          String downloadsPath = '/storage/emulated/0/Download';
+          String ooribaPath = '$downloadsPath/ooriba';
+          Directory ooribaDir = Directory(ooribaPath);
+
+          // Create the ooriba folder if it doesn't exist
+          if (!await ooribaDir.exists()) {
+            await ooribaDir.create(recursive: true);
+          }
+
+          // Sanitize the file name
+          fileName = Uri.parse(fileName).pathSegments.last;
+          fileName = fileName.replaceAll(RegExp(r'[^\w\s-]'), '');
+          fileName = "$fileName.png";
+
+          String savePath = '${ooribaDir.path}/$fileName';
+
+          // Download the file
+          await dio.download(url, savePath);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Image saved to $savePath')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Unable to access downloads directory')),
+          );
+        }
+      } catch (e) {
+        print('Error downloading image: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error downloading image')),
+        );
+      }
+    } else if (await Permission.storage.isDenied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Storage permission denied')),
+      );
+    } else if (await Permission.storage.isPermanentlyDenied) {
+      openAppSettings();
     }
   }
 
@@ -67,13 +125,13 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
         print('Saving data: ${employeeData['email']} -> $employeeData');
         await FirebaseFirestore.instance
             .collection('Regemp')
-            .doc(employeeData['email'])
+            .doc(employeeData['phoneNo'])
             .set(employeeData);
 
         // Delete the employee from the "Employee" collection
         await FirebaseFirestore.instance
             .collection('Employee')
-            .doc(employeeData['email'])
+            .doc(employeeData['phoneNo'])
             .delete();
 
         // Send SMS
@@ -118,7 +176,6 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       employeeData['status'] = 'Active';
       employeeData['role'] = 'Standard';
     });
-
     try {
       // Save user to Firebase Authentication
       UserCredential userCredential = await FirebaseAuth.instance
@@ -221,10 +278,9 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   }
 
   String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Email is required';
-    }
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+    if (value != null &&
+        value.isNotEmpty &&
+        !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
       return 'Enter a valid email address';
     }
     return null;
@@ -251,29 +307,28 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   }
 
   String? _validatePanNumber(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'PAN number is required';
-    }
-    if (!RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$').hasMatch(value)) {
+    if (value != null &&
+        value.isNotEmpty &&
+        !RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$').hasMatch(value)) {
       return 'Enter a valid PAN number';
     }
     return null;
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Password is required';
-    }
-    if (value.length < 6) {
-      return 'minimum length 6';
-    }
-    if (!RegExp(
-            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]')
-        .hasMatch(value)) {
-      return 'uppercase,lowercase,num,special character.';
-    }
-    return null;
-  }
+  // String? _validatePassword(String? value) {
+  //   if (value == null || value.isEmpty) {
+  //     return 'Password is required';
+  //   }
+  //   if (value.length < 6) {
+  //     return 'minimum length 6';
+  //   }
+  //   if (!RegExp(
+  //           r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]')
+  //       .hasMatch(value)) {
+  //     return 'uppercase,lowercase,num,special character.';
+  //   }
+  //   return null;
+  // }
 
   String? _validateDateOfBirth(String? value) {
     if (value == null || value.isEmpty) {
@@ -355,8 +410,11 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
                     ),
-                    keyboardType:
-                        isNumber ? TextInputType.number : TextInputType.text,
+                    keyboardType: isNumber
+                        ? TextInputType.number
+                        : isEmail
+                            ? TextInputType.emailAddress
+                            : TextInputType.text,
                     onChanged: (value) {
                       employeeData[key] = value;
                     },
@@ -404,37 +462,6 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     );
   }
 
-  Widget _buildPasswordRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Password: ',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Expanded(
-            child: isEditing
-                ? TextFormField(
-                    initialValue: employeeData['password'],
-                    onChanged: (newValue) {
-                      setState(() {
-                        employeeData['password'] = newValue;
-                      });
-                    },
-                    obscureText: true,
-                    validator: _validatePassword,
-                  )
-                : Text(employeeData['password'] != null
-                    ? '********'
-                    : 'N/A'), // Mask the password
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildImageRow(String label, String key) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -458,7 +485,19 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                     image: employeeData[key], // Image URL from employeeData
                     fit: BoxFit.cover,
                   )
-                : Text('N/A'),
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('N/A'),
+                      SizedBox(height: 8.0),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Add your function to capture an image here
+                        },
+                        child: Text('Capture Image'),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -485,7 +524,9 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                     child: ElevatedButton(
                       onPressed: () async {
                         final url = employeeData[key];
-                        await _launchURL(url);
+                        final fileName =
+                            url.split('/').last; // Extract file name from URL
+                        await _downloadImage(url, fileName);
                       },
                       style: ElevatedButton.styleFrom(
                         padding:
@@ -495,7 +536,19 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                       child: Text('Download'),
                     ),
                   )
-                : Text('N/A'),
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('N/A'),
+                      SizedBox(height: 8.0),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Add your function to capture an attachment here
+                        },
+                        child: Text('Upload Attachment'),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
