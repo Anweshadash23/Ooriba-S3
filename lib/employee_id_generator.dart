@@ -4,7 +4,7 @@ class EmployeeIdGenerator {
   Future<String> generateEmployeeId(String location) async {
     // Fetch location details from Firestore collection "location"
     DocumentReference locationRef =
-        FirebaseFirestore.instance.collection('location').doc(location);
+        FirebaseFirestore.instance.collection('Locations').doc(location);
 
     DocumentSnapshot locationDoc = await locationRef.get();
 

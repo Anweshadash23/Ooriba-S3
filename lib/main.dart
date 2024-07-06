@@ -10,6 +10,8 @@ import 'package:ooriba/services/forgot_pass_service.dart';
 import 'package:ooriba/signup_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'Admin/admin_dashboard_page.dart'; // Import the admin.dart file
+import 'services/company_name_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,13 +52,16 @@ class OoribaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => DarkModeService(),
-      child: Consumer<DarkModeService>(
-        builder: (context, darkModeService, _) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DarkModeService()),
+        ChangeNotifierProvider(create: (_) => CompanyNameService()),
+      ],
+      child: Consumer2<DarkModeService, CompanyNameService>(
+        builder: (context, darkModeService, companyNameService, _) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'OORIBA_S3',
+            title: companyNameService.companyName,
             theme: ThemeData(
               primarySwatch: Colors.blue,
               brightness: Brightness.light,
@@ -95,9 +100,10 @@ class LoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final darkModeService =
         Provider.of<DarkModeService>(context, listen: false);
+    final companyNameService = Provider.of<CompanyNameService>(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('OORIBA_S3'),
+        title: Text(companyNameService.companyName),
         actions: [
           IconButton(
             icon: Icon(darkModeService.isDarkMode
@@ -116,7 +122,9 @@ class LoginPage extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
+                  constraints: const BoxConstraints(
+                    maxWidth: 400, // Limit the width for larger screens
+                  ),
                   child: Container(
                     padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
@@ -133,9 +141,9 @@ class LoginPage extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
-                        const Text(
-                          'Welcome To OORIBA-S3',
-                          style: TextStyle(
+                        Text(
+                          'Welcome To ${companyNameService.companyName}',
+                          style: const TextStyle(
                               fontSize: 24, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 20),
@@ -219,6 +227,18 @@ class LoginPage extends StatelessWidget {
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AdminDashboardPage(),
+                              ),
+                            );
+                          },
+                          child: const Text('Admin'),
                         ),
                       ],
                     ),
