@@ -1,3 +1,4 @@
+
 // // import 'package:flutter/material.dart';
 // // import 'package:image_picker/image_picker.dart';
 // // import 'package:ooriba_s3/services/employeeService.dart';
@@ -243,9 +244,10 @@
 
 // import 'package:flutter/material.dart';
 // import 'package:image_picker/image_picker.dart';
-// import 'package:ooriba/services/employeeService.dart';
+// import 'package:ooriba_s3/services/employeeService.dart';
 // import 'dart:io';
-// import 'package:ooriba/services/retrieveDataByEmail.dart';
+
+// import 'package:ooriba_s3/services/retrieveDataByEmail.dart';
 
 // class EditPersonalDetailsPage extends StatefulWidget {
 //   final String email;
@@ -253,8 +255,7 @@
 //   const EditPersonalDetailsPage({super.key, required this.email});
 
 //   @override
-//   _EditPersonalDetailsPageState createState() =>
-//       _EditPersonalDetailsPageState();
+//   _EditPersonalDetailsPageState createState() => _EditPersonalDetailsPageState();
 // }
 
 // class _EditPersonalDetailsPageState extends State<EditPersonalDetailsPage> {
@@ -277,8 +278,7 @@
 //   }
 
 //   Future<void> _fetchEmployeeData() async {
-//     Map<String, dynamic>? userDetails =
-//         await firestoreService.getEmployeeByEmail(widget.email);
+//     Map<String, dynamic>? userDetails = await firestoreService.getEmployeeByEmail(widget.email, 'Regemp');
 //     if (userDetails != null) {
 //       setState(() {
 //         _firstName.text = userDetails['firstName'] ?? '';
@@ -298,8 +298,7 @@
 //   }
 
 //   Future<void> _pickImage(int x) async {
-//     final pickedFile =
-//         await ImagePicker().pickImage(source: ImageSource.gallery);
+//     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
 //     if (pickedFile != null) {
 //       setState(() {
 //         if (x == 2) {
@@ -321,10 +320,8 @@
 //     final lastName = _lastName.text.isNotEmpty ? _lastName.text : null;
 //     final email = _email.text.isNotEmpty ? _email.text : null;
 //     final password = _password.text.isNotEmpty ? _password.text : null;
-//     final resAdd =
-//         _residentialAddress.text.isNotEmpty ? _residentialAddress.text : null;
-//     final perAdd =
-//         _permanentAddress.text.isNotEmpty ? _permanentAddress.text : null;
+//     final resAdd = _residentialAddress.text.isNotEmpty ? _residentialAddress.text : null;
+//     final perAdd = _permanentAddress.text.isNotEmpty ? _permanentAddress.text : null;
 //     final phoneNo = _phoneNumber.text.isNotEmpty ? _phoneNumber.text : null;
 //     EmployeeService employeeService = EmployeeService();
 
@@ -387,8 +384,7 @@
 //                     children: <Widget>[
 //                       const Text(
 //                         'Edit Personal Details',
-//                         style: TextStyle(
-//                             fontSize: 24, fontWeight: FontWeight.bold),
+//                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
 //                       ),
 //                       const SizedBox(height: 20),
 //                       TextFormField(
@@ -461,27 +457,21 @@
 //                         child: const Text('Upload DP Image'),
 //                       ),
 //                       const SizedBox(height: 10),
-//                       dpImage == null
-//                           ? const Text('No image selected.')
-//                           : Image.file(dpImage!),
+//                       dpImage == null ? const Text('No image selected.') : Image.file(dpImage!),
 //                       const SizedBox(height: 20),
 //                       ElevatedButton(
 //                         onPressed: () => _pickImage(1),
 //                         child: const Text('Upload Aadhaar Image'),
 //                       ),
 //                       const SizedBox(height: 10),
-//                       adhaarImage == null
-//                           ? const Text('No image selected.')
-//                           : Image.file(adhaarImage!),
+//                       adhaarImage == null ? const Text('No image selected.') : Image.file(adhaarImage!),
 //                       const SizedBox(height: 20),
 //                       ElevatedButton(
 //                         onPressed: () => _pickImage(3),
 //                         child: const Text('Upload Supporting Image'),
 //                       ),
 //                       const SizedBox(height: 10),
-//                       supportImage == null
-//                           ? const Text('No image selected.')
-//                           : Image.file(supportImage!),
+//                       supportImage == null ? const Text('No image selected.') : Image.file(supportImage!),
 //                       const SizedBox(height: 20),
 //                       ElevatedButton(
 //                         onPressed: _submitForm,

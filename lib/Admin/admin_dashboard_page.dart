@@ -8,7 +8,6 @@ import 'package:ooriba/services/auth_service.dart';
 import 'package:ooriba/services/company_name_service.dart';
 import 'package:ooriba/services/registered_service.dart';
 import 'package:provider/provider.dart';
-import 'package:location/location.dart';
 import 'admin_employee_details.dart';
 import 'standard_settings_page.dart'; // Import the Standard Settings page
 

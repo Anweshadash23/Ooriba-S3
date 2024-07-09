@@ -5,25 +5,24 @@ import 'package:http/http.dart' as http;
 class AcceptMailService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<Map<String, dynamic>> getEmployeeDetails(String email) async {
+  Future<Map<String, dynamic>> getEmployeeDetails(String phoneNo) async {
     try {
       DocumentSnapshot doc =
-          await _firestore.collection('Employee').doc(email).get();
+          await _firestore.collection('Employee').doc(phoneNo).get();
       if (doc.exists) {
         return doc.data() as Map<String, dynamic>;
       } else {
-        throw Exception('No employee found with this email.');
+        throw Exception('No employee found with this phoneNo.');
       }
     } catch (e) {
       print('Failed to fetch employee details: $e');
       throw Exception('Failed to fetch employee details: $e');
     }
   }
-
-  Future<void> sendAcceptanceEmail(String email) async {
+  Future<void> sendAcceptanceEmail(String phoneNo) async {
     try {
-      final employeeData = await getEmployeeDetails(email);
-
+      final employeeData = await getEmployeeDetails(phoneNo);
+      String email=employeeData['email'];
       const serviceId = 'service_7isyfqo';
       const templateId = 'template_2kg20dr';
       const userId = '_b8-qaQnQOhviU59X';

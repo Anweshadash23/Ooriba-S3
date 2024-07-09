@@ -34,7 +34,7 @@ class _RegisteredEmployeesPageState extends State<RegisteredEmployeesPage> {
   //             final data = employees[index].data() as Map<String, dynamic>;
   //             return EmployeeCard(data: data);
   //           },
-  Widget build(BuildContext context) {
+   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registered Employees'),
@@ -63,8 +63,7 @@ class _RegisteredEmployeesPageState extends State<RegisteredEmployeesPage> {
           return ListView.builder(
             itemCount: filteredEmployees.length,
             itemBuilder: (context, index) {
-              final data =
-                  filteredEmployees[index].data() as Map<String, dynamic>;
+              final data = filteredEmployees[index].data() as Map<String, dynamic>;
               return EmployeeCard(data: data);
             },
           );
@@ -91,23 +90,21 @@ class EmployeeCard extends StatelessWidget {
             Row(
               children: <Widget>[
                 CircleAvatar(
-                  radius: 30.0,
-                  backgroundColor: Colors.purple[100],
-                  backgroundImage: data['dpImageUrl'] != null &&
-                          data['dpImageUrl'].isNotEmpty
-                      ? NetworkImage(data['dpImageUrl'])
-                      : null,
-                  child:
-                      data['dpImageUrl'] == null || data['dpImageUrl'].isEmpty
-                          ? Text(
-                              '${data['firstName'][0]}${data['lastName'][0]}',
-                              style: const TextStyle(
-                                fontSize: 24.0,
-                                color: Colors.white,
-                              ),
-                            )
-                          : null,
-                ),
+          radius: 30.0,
+          backgroundColor: Colors.purple[100],
+          backgroundImage: data['dpImageUrl'] != null && data['dpImageUrl'].isNotEmpty
+              ? NetworkImage(data['dpImageUrl'])
+              : null,
+          child: data['dpImageUrl'] == null || data['dpImageUrl'].isEmpty
+              ? Text(
+                  '${data['firstName'][0]}${data['lastName'][0]}',
+                  style: const TextStyle(
+                    fontSize: 24.0,
+                    color: Colors.white,
+                  ),
+                )
+              : null,
+        ),
                 //   radius: 30.0,
                 //   backgroundColor: Colors.purple[100],
                 //   child: Text(
@@ -396,7 +393,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
                 'Executive'
               ]),
               _buildDropdown('Location', _selectedLocation,
-                  ['Jaypore', 'Berhampur', 'Rayagada']),
+                  ['Jaypore', 'Berhampur', 'Raigada']),
               _buildDropdown('Status', _selectedStatus, ['Active', 'Inactive']),
               _buildDropdown('Role', _selectedRole, ['Standard', 'HR']),
               _buildDropdown('Employee Type', _selectedEmployeeType,

@@ -9,4 +9,5 @@ class DarkModeService extends ChangeNotifier {
     _isDarkMode = !_isDarkMode;
     notifyListeners();
   }
+  
 }

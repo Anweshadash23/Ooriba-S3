@@ -429,12 +429,12 @@
 // }
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:ooriba/HR/add_employees.dart';
 import 'package:ooriba/HR/employee_details_page.dart';
 import 'package:ooriba/HR/registered_employees_page.dart';
+import 'package:ooriba/leave_approval.dart';
 import 'package:ooriba/services/auth_service.dart';
 import 'package:ooriba/services/registered_service.dart';
-import 'attendance.dart';
+import 'attendance.dart'; // Assuming this file contains DatePickerButton widget
 import 'rejected_employees_page.dart';
 
 class HRDashboardPage extends StatefulWidget {
@@ -494,20 +494,15 @@ class _HRDashboardPageState extends State<HRDashboardPage> {
             ),
             ListTile(
               leading: const Icon(Icons.time_to_leave),
-              title: const Text('Leave'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to Leave Page
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.time_to_leave),
-              title: const Text('Add employee'),
+              title: const Text('Employee Leave Requests'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AddEmployeePage()),
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        LeaveApprovalPage(), // Navigate to LeaveApprovalPage
+                  ),
                 );
               },
             ),
