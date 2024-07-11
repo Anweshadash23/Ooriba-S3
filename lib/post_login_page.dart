@@ -9,13 +9,13 @@ import 'package:intl/intl.dart';
 import 'package:ooriba/facial/DB/DatabaseHelper.dart';
 import 'package:ooriba/facial/RecognitionScreen.dart';
 import 'package:ooriba/facial/RegistrationScreen.dart';
+import 'package:ooriba/leave.dart';
 import 'package:ooriba/services/auth_service.dart';
 import 'package:ooriba/services/geo_service.dart';
 import 'package:ooriba/services/retrieveDataByEmail.dart'
     as retrieveDataByEmail;
 import 'package:ooriba/services/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'leave.dart';
 
 class PostLoginPage extends StatefulWidget {
   final String phoneNumber;
@@ -574,7 +574,8 @@ class _PostLoginPageState extends State<PostLoginPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => LeavePage()),
+                  MaterialPageRoute(
+                      builder: (context) => LeavePage(employeeId: employeeId)),
                 );
               },
             ),

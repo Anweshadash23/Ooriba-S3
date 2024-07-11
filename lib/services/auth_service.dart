@@ -222,6 +222,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:ooriba/HR/hr_dashboard_page.dart';
 import 'package:ooriba/main.dart';
 import 'package:ooriba/post_login_page.dart';
+import 'package:ooriba/siteManager/siteManagerDashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
@@ -312,7 +313,7 @@ class AuthService {
       // Navigate to the appropriate page based on the role
       await Future.delayed(const Duration(seconds: 1));
       if (role == "Standard") {
-        String firstName = documentSnapshot.data()?['firstName'] ?? '';
+        // String firstName = documentSnapshot.data()?['firstName'] ?? '';
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -326,6 +327,15 @@ class AuthService {
           context,
           MaterialPageRoute(
             builder: (BuildContext context) => const HRDashboardPage(),
+          ),
+        );
+        return true;
+      } else if (role == "SiteManager") {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (BuildContext context) =>
+                Sitemanagerdashboard(phoneNumber: email!, userDetails: {}),
           ),
         );
         return true;

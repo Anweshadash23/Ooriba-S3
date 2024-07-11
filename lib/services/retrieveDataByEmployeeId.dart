@@ -5,11 +5,13 @@ class FirestoreService {
 
   Future<Map<String, dynamic>?> getEmployeeById(String employeeId) async {
     try {
-      DocumentSnapshot snapshot =
-          await _db.collection('Regemp').doc(employeeId).get();
+      QuerySnapshot snapshot = (await _db
+          .collection('Regemp')
+          .where('employeeId', isEqualTo: employeeId).limit(1)
+          .get());
 
-      if (snapshot.exists) {
-        return snapshot.data() as Map<String, dynamic>;
+      if (snapshot.docs.isNotEmpty) {
+       return snapshot.docs.first.data() as Map<String, dynamic>;
       } else {
         return null;
       }

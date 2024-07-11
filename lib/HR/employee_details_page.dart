@@ -10,13 +10,14 @@ import 'package:ooriba/services/registered_service.dart';
 import 'package:ooriba/services/reject_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 // import 'package:emailjs/emailjs.dart';
 // import 'package:sms_advanced/sms_advanced.dart';
 
 class EmployeeDetailsPage extends StatefulWidget {
   final Map<String, dynamic> employeeData;
 
-  const EmployeeDetailsPage({super.key, required this.employeeData});
+  EmployeeDetailsPage({required this.employeeData});
 
   @override
   _EmployeeDetailsPageState createState() => _EmployeeDetailsPageState();
@@ -30,7 +31,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   final RejectService _rejectService = RejectService();
   final _formKey = GlobalKey<FormState>();
   final EmployeeIdGenerator _idGenerator = EmployeeIdGenerator();
-  final TextEditingController _joiningDateController = TextEditingController();
+  TextEditingController _joiningDateController = TextEditingController();
 
   @override
   void initState() {
@@ -46,6 +47,14 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       employeeData['dob'] = formattedDob;
     }
   }
+
+  // Future<void> _launchURL(String url) async {
+  //   if (await canLaunch(url)) {
+  //     await launch(url);
+  //   } else {
+  //     throw 'Could not launch $url';
+  //   }
+  // }
 
   Future<void> _downloadImage(String url, String fileName) async {
     Dio dio = Dio();
@@ -82,19 +91,18 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Unable to access downloads directory')),
+            SnackBar(content: Text('Unable to access downloads directory')),
           );
         }
       } catch (e) {
         print('Error downloading image: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error downloading image')),
+          SnackBar(content: Text('Error downloading image')),
         );
       }
     } else if (await Permission.storage.isDenied) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Storage permission denied')),
+        SnackBar(content: Text('Storage permission denied')),
       );
     } else if (await Permission.storage.isPermanentlyDenied) {
       openAppSettings();
@@ -110,14 +118,17 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   void _saveDetails() async {
     if (_formKey.currentState!.validate()) {
       try {
+        // Ensure location is provided in employeeData
         String location = employeeData['location'];
         if (location == null || location.isEmpty) {
           throw Exception('Location is required to generate an employee ID');
         }
+
+        // Generate a new employee ID
         final employeeId = await _idGenerator.generateEmployeeId(location);
         employeeData['employeeId'] = employeeId;
 
-        print('Saving data: ${employeeData['phoneNo']} -> $employeeData');
+        print('Saving data: ${employeeData['email']} -> $employeeData');
         await FirebaseFirestore.instance
             .collection('Regemp')
             .doc(employeeData['phoneNo'])
@@ -129,25 +140,11 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
             .doc(employeeData['phoneNo'])
             .delete();
 
-        // Send SMS
-        // SmsSender sender = SmsSender();
-        // String phoneNumber = employeeData['phoneNo'];
-        // String message =
-        //     'Your employee details have been saved successfully. Your employee ID is $employeeId.';
-        // SmsMessage smsMessage = SmsMessage(phoneNumber, message);
-        // smsMessage.onStateChanged.listen((state) {
-        //   if (state == SmsMessageState.Sent) {
-        //     print("SMS is sent!");
-        //   } else if (state == SmsMessageState.Delivered) {
-        //     print("SMS is delivered!");
-        //   } else if (state == SmsMessageState.Fail) {
-        //     print("Failed to send SMS.");
-        //   }
-        // });
-        // sender.sendSms(smsMessage);
+        // Optionally send SMS here
+        // ...
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
               content: Text(
                   'Employee details updated, deleted from the Employee collection, and email sent successfully')),
         );
@@ -171,59 +168,33 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       employeeData['status'] = 'Active';
       employeeData['role'] = 'Standard';
     });
+    try {
+      // Save user to Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+              email: employeeData['email'], password: employeeData['password']);
+      User? user = userCredential.user;
 
-    if (employeeData['password'] != null &&
-        employeeData['email'] != "null" &&
-        employeeData['email'] != null) {
-      try {
-        UserCredential userCredential = await FirebaseAuth.instance
-            .createUserWithEmailAndPassword(
-                email: employeeData['email'],
-                password: employeeData['password']);
-        User? user = userCredential.user;
-
-        if (user != null) {
-          user.updateDisplayName(employeeData['firstName']);
-          // user.sendEmailVerification();
-        }
-        await _acceptMailService.sendAcceptanceEmail(employeeData['phoneNo']);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  'Failed to add employee to authentication or send acceptance email: $e')),
-        );
+      if (user != null) {
+        user.updateProfile(displayName: employeeData['firstName']);
+        // user.sendEmailVerification();
       }
+
+      // Send acceptance email using EmailJS
+      await _acceptMailService.sendAcceptanceEmail(employeeData['email']);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                'Employee added to authentication and acceptance email sent successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                'Failed to add employee to authentication or send acceptance email: $e')),
+      );
     }
-
-    // try {
-    //   // Send acceptance email using EmailJS
-    //   while (employeeData['email'] && employeeData['email']!="null" && employeeData['email']!=null){
-    //     // Save user to Firebase Authentication
-    //   UserCredential userCredential = await FirebaseAuth.instance
-    //       .createUserWithEmailAndPassword(
-    //           email: employeeData['email'], password: employeeData['password']);
-    //   User? user = userCredential.user;
-
-    //   if (user != null) {
-    //     user.updateDisplayName(employeeData['firstName']);
-    //     // user.sendEmailVerification();
-    //   }
-    //   await _acceptMailService.sendAcceptanceEmail(employeeData['email']);
-    //   }
-
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(
-    //         content: Text(
-    //             'Employee added to authentication and acceptance email sent successfully')),
-    //   );
-    // } catch (e) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(
-    //         content: Text(
-    //             'Failed to add employee to authentication or send acceptance email: $e')),
-    //   );
-    // }
   }
 
   Future<void> _showRejectPopup() async {
@@ -234,11 +205,11 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       barrierDismissible: false, // User must fill the reason and press a button
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Reject Reason'),
+          title: Text('Reject Reason'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              const Text(
+              Text(
                   'Please provide a reason for rejecting the employee details:'),
               TextField(
                 onChanged: (value) {
@@ -256,20 +227,20 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancel'),
+              child: Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             ElevatedButton(
-              child: const Text('Save'),
+              child: Text('Save'),
               onPressed: () async {
                 if (reason != null && reason!.isNotEmpty) {
                   try {
                     await _rejectService.rejectEmployee(employeeData, reason!);
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                           content: Text(
                               'Employee details rejected and saved successfully')),
                     );
@@ -298,15 +269,14 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     print('Changes rejected');
   }
 
-  // String? _validateEmail(String? value) {
-  //   if (value == null || value.isEmpty) {
-  //     return 'Email is required';
-  //   }
-  //   if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-  //     return 'Enter a valid email address';
-  //   }
-  //   return null;
-  // }
+  String? _validateEmail(String? value) {
+    if (value != null &&
+        value.isNotEmpty &&
+        !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+      return 'Enter a valid email address';
+    }
+    return null;
+  }
 
   String? _validatePhoneNumber(String? value) {
     if (value == null || value.isEmpty) {
@@ -329,29 +299,28 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   }
 
   String? _validatePanNumber(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'PAN number is required';
-    }
-    if (!RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$').hasMatch(value)) {
+    if (value != null &&
+        value.isNotEmpty &&
+        !RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$').hasMatch(value)) {
       return 'Enter a valid PAN number';
     }
     return null;
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Password is required';
-    }
-    if (value.length < 6) {
-      return 'minimum length 6';
-    }
-    if (!RegExp(
-            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]')
-        .hasMatch(value)) {
-      return 'uppercase,lowercase,num,special character.';
-    }
-    return null;
-  }
+  // String? _validatePassword(String? value) {
+  //   if (value == null || value.isEmpty) {
+  //     return 'Password is required';
+  //   }
+  //   if (value.length < 6) {
+  //     return 'minimum length 6';
+  //   }
+  //   if (!RegExp(
+  //           r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]')
+  //       .hasMatch(value)) {
+  //     return 'uppercase,lowercase,num,special character.';
+  //   }
+  //   return null;
+  // }
 
   String? _validateDateOfBirth(String? value) {
     if (value == null || value.isEmpty) {
@@ -413,28 +382,45 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   Widget _buildDetailRow(String label, String key,
       {bool isNumber = false,
       bool isEmail = false,
+      bool isMandatory = false,
       String? Function(String?)? validator}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(
+          Container(
             width: 150,
-            child: Text(
-              '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            child: RichText(
+              text: TextSpan(
+                text: '$label: ',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                children: isMandatory
+                    ? [
+                        TextSpan(
+                          text: '*',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ]
+                    : [],
+              ),
             ),
           ),
           Expanded(
             child: isEditing
                 ? TextFormField(
                     initialValue: employeeData[key] ?? '',
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       border: OutlineInputBorder(),
                     ),
-                    keyboardType:
-                        isNumber ? TextInputType.number : TextInputType.text,
+                    keyboardType: isNumber
+                        ? TextInputType.number
+                        : isEmail
+                            ? TextInputType.emailAddress
+                            : TextInputType.text,
                     onChanged: (value) {
                       employeeData[key] = value;
                     },
@@ -453,11 +439,11 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(
+          Container(
             width: 150,
             child: Text(
               '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
           Expanded(
@@ -467,7 +453,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                     child: AbsorbPointer(
                       child: TextFormField(
                         controller: _joiningDateController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           suffixIcon: Icon(Icons.calendar_today),
                         ),
@@ -482,51 +468,20 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     );
   }
 
-  Widget _buildPasswordRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Text(
-            'Password: ',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Expanded(
-            child: isEditing
-                ? TextFormField(
-                    initialValue: employeeData['password'],
-                    onChanged: (newValue) {
-                      setState(() {
-                        employeeData['password'] = newValue;
-                      });
-                    },
-                    obscureText: true,
-                    validator: _validatePassword,
-                  )
-                : Text(employeeData['password'] != null
-                    ? '********'
-                    : 'N/A'), // Mask the password
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildImageRow(String label, String key) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(
+          Container(
             width: 150,
             child: Text(
               '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          SizedBox(
+          Container(
             width: 100, // Fixed width
             height: 100, // Fixed height
             child: employeeData[key] != null
@@ -536,7 +491,19 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                     image: employeeData[key], // Image URL from employeeData
                     fit: BoxFit.cover,
                   )
-                : const Text('N/A'),
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('N/A'),
+                      SizedBox(height: 8.0),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Add your function to capture an image here
+                        },
+                        child: Text('Capture Image'),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -549,11 +516,11 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(
+          Container(
             width: 150,
             child: Text(
               '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
           Expanded(
@@ -568,32 +535,57 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                         await _downloadImage(url, fileName);
                       },
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 10),
-                        minimumSize:
-                            const Size(60, 40), // Adjust the size as needed
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        minimumSize: Size(60, 40), // Adjust the size as needed
                       ),
-                      child: const Text('Download'),
+                      child: Text('Download'),
                     ),
                   )
-                : const Text('N/A'),
-          )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('N/A'),
+                      SizedBox(height: 8.0),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Add your function to capture an attachment here
+                        },
+                        child: Text('Upload Attachment'),
+                      ),
+                    ],
+                  ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDropdownRow(String label, String key, List<String> options) {
+  Widget _buildDropdownRow(String label, String key, List<String> options,
+      {bool isMandatory = false, String? Function(String?)? validator}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(
+          Container(
             width: 150,
-            child: Text(
-              '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            child: RichText(
+              text: TextSpan(
+                text: '$label',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                children: isMandatory
+                    ? [
+                        TextSpan(
+                          text: '*',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ]
+                    : [],
+              ),
             ),
           ),
           Expanded(
@@ -612,10 +604,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                         child: Text(value),
                       );
                     }).toList(),
-                    validator: (value) {
-                      // Remove mandatory validation for dropdowns
-                      return null;
-                    },
+                    validator: validator,
                   )
                 : Text(employeeData[key] ?? ''),
           ),
@@ -632,7 +621,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
         children: <Widget>[
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18.0,
               fontWeight: FontWeight.bold,
               color: Colors.blue,
@@ -648,10 +637,10 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Employee Details'),
+        title: Text('Employee Details'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.close),
+            icon: Icon(Icons.close),
             onPressed: () {
               Navigator.of(context).pop(); // Close the details page
             },
@@ -661,44 +650,52 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(16.0),
           children: <Widget>[
             _buildCategory(
               'Personal Information',
               [
-                _buildDetailRow('First Name', 'firstName', validator: (value) {
+                _buildDetailRow('First Name', 'firstName', isMandatory: true,
+                    validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'First name is required';
                   }
                   return null;
                 }),
                 _buildDetailRow('Middle Name', 'middleName'),
-                _buildDetailRow('Last Name', 'lastName', validator: (value) {
+                _buildDetailRow('Last Name', 'lastName', isMandatory: true,
+                    validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Last name is required';
                   }
                   return null;
                 }),
+                _buildDetailRow('Email', 'email',
+                    isEmail: true, validator: _validateEmail),
                 _buildDetailRow('Phone Number', 'phoneNo',
-                    isNumber: true, validator: _validatePhoneNumber),
+                    isNumber: true,
+                    isMandatory: true,
+                    validator: _validatePhoneNumber),
                 _buildDetailRow('Date of Birth', 'dob',
-                    validator: _validateDateOfBirth),
+                    isMandatory: true, validator: _validateDateOfBirth),
                 _buildDetailRow('Permanent Address', 'permanentAddress',
-                    validator: (value) {
+                    isMandatory: true, validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Permanent address is required';
                   }
                   return null;
                 }),
                 _buildDetailRow('Residential Address', 'residentialAddress',
-                    validator: (value) {
+                    isMandatory: true, validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Residential address is required';
                   }
                   return null;
                 }),
                 _buildDetailRow('Aadhar Number', 'aadharNo',
-                    validator: _validateAadharNumber),
+                    isMandatory: true, validator: _validateAadharNumber),
+                _buildDetailRow('PAN Number', 'panNo',
+                    validator: _validatePanNumber),
                 _buildImageRow('Profile Picture', 'dpImageUrl'),
                 _buildAttachmentRow('Aadhar Doc', 'adhaarImageUrl'),
                 _buildAttachmentRow('Support Doc', 'supportImageUrl'),
@@ -710,12 +707,22 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    const SizedBox(
+                    Container(
                       width: 150,
-                      child: Text(
-                        'Joining Date*: ',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.red),
+                      child: RichText(
+                        text: TextSpan(
+                          text: 'Joining Date: ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: '*',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     Expanded(
@@ -724,6 +731,9 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                               controller: _joiningDateController,
                               readOnly: true,
                               onTap: () => _selectDate(context),
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                              ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return 'Joining date is required';
@@ -732,20 +742,29 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                               },
                             )
                           : Text(
-                              employeeData['joiningDate'] ?? 'N/A',
-                              style: const TextStyle(color: Colors.black87),
+                              employeeData['joiningDate'] ?? '',
+                              style: TextStyle(color: Colors.black87),
                             ),
                     ),
                   ],
                 ),
               ),
-              _buildDropdownRow('Department', 'department', [
-                'Sales',
-                'Services',
-                'Spares',
-                'Administration',
-                'Board of Directors'
-              ]),
+              _buildDropdownRow(
+                  'Department',
+                  'department',
+                  [
+                    'Sales',
+                    'Services',
+                    'Spares',
+                    'Administration',
+                    'Board of Directors'
+                  ],
+                  isMandatory: true, validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Designation is required';
+                }
+                return null;
+              }),
               _buildDropdownRow('Designation', 'designation', [
                 'Manager',
                 'Senior Engineer',
@@ -756,7 +775,13 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
               _buildDropdownRow(
                   'Employee Type', 'employeeType', ['On-site', 'Off-site']),
               _buildDropdownRow(
-                  'Location', 'location', ['Jeypore', 'Berhampur', 'Raigada']),
+                  'Location', 'location', ['Jeypore', 'Berhampur', 'Rayagada'],
+                  isMandatory: true, validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Location is required';
+                }
+                return null;
+              }),
             ]),
             _buildCategory('Bank Details', [
               _buildDetailRow('Bank Name', 'bankName'),
@@ -777,7 +802,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       ),
       bottomNavigationBar: Container(
         color: Colors.grey[200],
-        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+        padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
@@ -786,9 +811,9 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                 backgroundColor: Colors.red,
               ),
               onPressed: _rejectChanges,
-              child: const Text('Reject'),
+              child: Text('Reject'),
             ),
-            const SizedBox(width: 10.0),
+            SizedBox(width: 10.0),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,

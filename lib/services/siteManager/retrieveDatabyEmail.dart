@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FirestoreService {
@@ -10,7 +9,7 @@ class FirestoreService {
       QuerySnapshot emailSnapshot = await _db
           .collection(database)
           .where('email', isEqualTo: emailOrPhoneNo)
-          .where('role', isEqualTo: 'Standard')
+          .where('role', isEqualTo: 'SiteManager')
           .limit(1)
           .get();
 
@@ -19,7 +18,7 @@ class FirestoreService {
         QuerySnapshot phoneNoSnapshot = await _db
             .collection(database)
             .where('phoneNo', isEqualTo: emailOrPhoneNo)
-            .where('role', isEqualTo: 'Standard')
+            .where('role', isEqualTo: 'SiteManager')
             .limit(1)
             .get();
 
@@ -32,7 +31,7 @@ class FirestoreService {
 
       return null;
     } catch (e) {
-      print(e);
+      print("retrieving, $e");
       return null;
     }
   }
@@ -42,6 +41,7 @@ class FirestoreService {
       final employeeData = await getEmployeeByEmailOrPhoneNo(emailOrPhoneNo, "Regemp");
       return employeeData;
     }
+    print("Search Employee");
     return null;
   }
 

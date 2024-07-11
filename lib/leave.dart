@@ -3,12 +3,17 @@ import 'package:intl/intl.dart';
 import 'services/leave_service.dart'; // Import the leave service
 
 class LeavePage extends StatefulWidget {
+  final String? employeeId;
+  
+  
+  const LeavePage({super.key, required this.employeeId});
   @override
   _LeavePageState createState() => _LeavePageState();
 }
 
 class _LeavePageState extends State<LeavePage> {
   final _formKey = GlobalKey<FormState>();
+ late String empid;
   final LeaveService _leaveService =
       LeaveService(); // Instantiate the leave service
 
@@ -74,17 +79,12 @@ class _LeavePageState extends State<LeavePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              TextFormField(
-                controller: employeeIdController,
-                decoration:
-                    InputDecoration(label: _buildLabelWithStar('Employee ID')),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your Employee ID';
-                  }
-                  return null;
-                },
-              ),
+             TextFormField(
+  controller: TextEditingController(text:widget.employeeId),
+  decoration: InputDecoration(label: _buildLabelWithStar('Employee ID')),
+  enabled: false,
+),
+
               SizedBox(height: 12.0), // Reduced spacing
               DropdownButtonFormField(
                 value: selectedLeaveType,
@@ -191,8 +191,13 @@ class _LeavePageState extends State<LeavePage> {
                   onPressed: () async {
                     if (_formKey.currentState?.validate() ?? false) {
                       try {
+                        if(widget.employeeId==null){
+                          empid="null";
+                        }else {
+                          empid=widget.employeeId!;
+                        }
                         await _leaveService.applyLeave(
-                          employeeId: employeeIdController.text,
+                          employeeId:empid,
                           leaveType: selectedLeaveType,
                           fromDate: selectedLeaveType == 'Partial Leave'
                               ? null
@@ -226,6 +231,6 @@ class _LeavePageState extends State<LeavePage> {
   }
 
   void main() => runApp(MaterialApp(
-        home: LeavePage(),
+        home: LeavePage(employeeId: widget.employeeId),
       ));
 }
