@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:ooriba/services/retrieveDataByEmployeeId.dart';
-import 'services/leave_service.dart'; // Import the leave service
+import 'services/leave_service.dart';
 
 class LeaveApprovalPage extends StatefulWidget {
   @override
@@ -124,24 +124,22 @@ class _LeaveApprovalPageState extends State<LeaveApprovalPage> {
               employeeData['department'] ?? 'Department not specified';
           String employeeDp =
               employeeData['dpImageUrl'] ?? 'https://via.placeholder.com/150';
-          // Add more fields as needed
 
           return Container(
-            width: 300, // Adjust the width as needed
+            width: 300,
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.all(8.0), // Reduced padding
+                padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         CircleAvatar(
-                          backgroundImage:
-                              NetworkImage(employeeDp), // Placeholder image
-                          radius: 25.0, // Reduced radius
+                          backgroundImage: NetworkImage(employeeDp),
+                          radius: 25.0,
                         ),
-                        SizedBox(width: 8.0), // Reduced spacing
+                        SizedBox(width: 8.0),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,16 +147,11 @@ class _LeaveApprovalPageState extends State<LeaveApprovalPage> {
                               Text(employeeName,
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14.0)), // Reduced font size
+                                      fontSize: 14.0)),
                               Text('$employeeId',
-                                  style: TextStyle(
-                                      fontSize: 12.0)), // Reduced font size
+                                  style: TextStyle(fontSize: 12.0)),
                               Text(employeeRole,
-                                  style:
-                                      TextStyle(fontSize: 12.0)), // Role field
-                              // Text(employeeDepartment,
-                              //     style:
-                              //         TextStyle(fontSize: 12.0)), // Department field
+                                  style: TextStyle(fontSize: 12.0)),
                             ],
                           ),
                         ),
@@ -166,31 +159,31 @@ class _LeaveApprovalPageState extends State<LeaveApprovalPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('$leaveType',
-                                style: TextStyle(
-                                    fontSize: 12.0)), // Reduced font size
+                                style: TextStyle(fontSize: 12.0)),
                             Text('$numberOfDays Days',
-                                style: TextStyle(
-                                    fontSize: 12.0)), // Reduced font size
+                                style: TextStyle(fontSize: 12.0)),
                           ],
                         ),
                       ],
                     ),
-                    SizedBox(height: 8.0), // Reduced spacing
+                    SizedBox(height: 8.0),
                     Text('$leaveReason',
                         style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12.0)), // Reduced font size
+                            fontWeight: FontWeight.bold, fontSize: 12.0)),
                     Text('$fromDate - $toDate',
-                        style: TextStyle(fontSize: 12.0)), // Reduced font size
-                    SizedBox(height: 8.0), // Reduced spacing
+                        style: TextStyle(fontSize: 12.0)),
+                    SizedBox(height: 8.0),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         ElevatedButton(
                           onPressed: () async {
+                            String fromDateStr = DateFormat('yyyy-MM-dd')
+                                .format((leaveDetails['fromDate'] as Timestamp)
+                                    .toDate());
                             await _leaveService.updateLeaveStatus(
                                 employeeId: employeeId,
-                                fromDateStr: fromDate,
+                                fromDateStr: fromDateStr,
                                 isApproved: true);
                             fetchAllLeaveRequests();
                           },
@@ -198,25 +191,26 @@ class _LeaveApprovalPageState extends State<LeaveApprovalPage> {
                               Text('Approve', style: TextStyle(fontSize: 12.0)),
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                                vertical: 4.0), // Reduced padding
+                                horizontal: 8.0, vertical: 4.0),
                             backgroundColor: Colors.green,
                           ),
                         ),
-                        SizedBox(width: 8.0), // Reduced spacing
+                        SizedBox(width: 8.0),
                         ElevatedButton(
                           onPressed: () async {
+                            String fromDateStr = DateFormat('yyyy-MM-dd')
+                                .format((leaveDetails['fromDate'] as Timestamp)
+                                    .toDate());
                             await _leaveService.updateLeaveStatus(
                                 employeeId: employeeId,
-                                fromDateStr: fromDate,
+                                fromDateStr: fromDateStr,
                                 isApproved: false);
                             fetchAllLeaveRequests();
                           },
                           child: Text('Deny', style: TextStyle(fontSize: 12.0)),
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                                vertical: 4.0), // Reduced padding
+                                horizontal: 8.0, vertical: 4.0),
                             backgroundColor: Colors.red,
                           ),
                         ),

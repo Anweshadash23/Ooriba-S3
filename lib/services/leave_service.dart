@@ -27,6 +27,7 @@ class LeaveService {
         'toDate': toDate,
         'numberOfDays': numberOfDays,
         'leaveReason': leaveReason,
+        'isApproved': null, // Initialize isApproved as null
       });
     } catch (e) {
       print('Error applying leave: $e');
@@ -40,6 +41,7 @@ class LeaveService {
     required bool isApproved,
   }) async {
     try {
+      // Update the leave status in the request collection
       await _firestore
           .collection('leave')
           .doc('request')
@@ -48,6 +50,52 @@ class LeaveService {
           .update({
         'isApproved': isApproved,
       });
+
+      // Fetch the leave details
+      DocumentSnapshot<Map<String, dynamic>> leaveDoc = await _firestore
+          .collection('leave')
+          .doc('request')
+          .collection(employeeId)
+          .doc(fromDateStr)
+          .get();
+
+      if (leaveDoc.exists) {
+        Map<String, dynamic> leaveData = leaveDoc.data()!;
+
+        // If the leave is approved, copy the leave details to the "accept" collection
+        if (isApproved) {
+          await _firestore
+              .collection('leave')
+              .doc('accept')
+              .collection(employeeId)
+              .doc(fromDateStr)
+              .set({
+            'employeeId': employeeId,
+            'leaveType': leaveData['leaveType'],
+            'fromDate': leaveData['fromDate'],
+            'toDate': leaveData['toDate'],
+            'numberOfDays': leaveData['numberOfDays'],
+            'leaveReason': leaveData['leaveReason'],
+            'isApproved': isApproved,
+          });
+        } else {
+          // If the leave is denied, copy the leave details to the "reject" collection
+          await _firestore
+              .collection('leave')
+              .doc('reject')
+              .collection(employeeId)
+              .doc(fromDateStr)
+              .set({
+            'employeeId': employeeId,
+            'leaveType': leaveData['leaveType'],
+            'fromDate': leaveData['fromDate'],
+            'toDate': leaveData['toDate'],
+            'numberOfDays': leaveData['numberOfDays'],
+            'leaveReason': leaveData['leaveReason'],
+            'isApproved': isApproved,
+          });
+        }
+      }
     } catch (e) {
       print('Error updating leave status: $e');
       throw e;
