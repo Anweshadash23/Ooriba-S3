@@ -76,11 +76,31 @@ class LeaveService {
           await _firestore.collectionGroup('employeeId').get();
       return querySnapshot.docs.map((doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        data['employeeId'] = doc.reference.parent.id ?? 'Unknown';
+        data['employeeId'] = doc.reference.parent.parent?.id ?? 'Unknown';
         return data;
       }).toList();
     } catch (e) {
       print('Error fetching all leave requests: $e');
+      throw e;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchLeaveRequestsByEmployeeId(
+      String employeeId) async {
+    try {
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('leave')
+          .doc('request')
+          .collection(employeeId)
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        data['employeeId'] = employeeId;
+        return data;
+      }).toList();
+    } catch (e) {
+      print('Error fetching leave requests by employee ID: $e');
       throw e;
     }
   }
