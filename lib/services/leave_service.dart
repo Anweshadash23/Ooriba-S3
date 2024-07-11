@@ -53,4 +53,35 @@ class LeaveService {
       throw e;
     }
   }
+
+  Future<Map<String, dynamic>?> fetchLeaveDetails(
+      String employeeId, String fromDateStr) async {
+    try {
+      DocumentSnapshot doc = await _firestore
+          .collection('leave')
+          .doc('request')
+          .collection(employeeId)
+          .doc(fromDateStr)
+          .get();
+      return doc.exists ? doc.data() as Map<String, dynamic>? : null;
+    } catch (e) {
+      print('Error fetching leave details: $e');
+      throw e;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchAllLeaveRequests() async {
+    try {
+      QuerySnapshot querySnapshot =
+          await _firestore.collectionGroup('employeeId').get();
+      return querySnapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        data['employeeId'] = doc.reference.parent.id ?? 'Unknown';
+        return data;
+      }).toList();
+    } catch (e) {
+      print('Error fetching all leave requests: $e');
+      throw e;
+    }
+  }
 }
