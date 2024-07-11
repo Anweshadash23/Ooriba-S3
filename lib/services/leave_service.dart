@@ -19,9 +19,7 @@ class LeaveService {
           .collection('leave')
           .doc('request')
           .collection(employeeId)
-          .doc('dates')
-          .collection(fromDateStr)
-          .doc('details')
+          .doc(fromDateStr)
           .set({
         'employeeId': employeeId,
         'leaveType': leaveType,
@@ -46,9 +44,7 @@ class LeaveService {
           .collection('leave')
           .doc('request')
           .collection(employeeId)
-          .doc('dates')
-          .collection(fromDateStr)
-          .doc('details')
+          .doc(fromDateStr)
           .update({
         'isApproved': isApproved,
       });
@@ -56,49 +52,5 @@ class LeaveService {
       print('Error updating leave status: $e');
       throw e;
     }
-  }
-
-  Future<List<Map<String, dynamic>>> getLeaveRequests() async {
-    List<Map<String, dynamic>> leaveRequests = [];
-
-    try {
-      QuerySnapshot employeeSnapshot = await _firestore
-          .collection('leave')
-          .doc('request')
-          .collection('employees')
-          .get();
-
-      for (QueryDocumentSnapshot employeeDoc in employeeSnapshot.docs) {
-        String employeeId = employeeDoc.id;
-        QuerySnapshot dateSnapshot = await _firestore
-            .collection('leave')
-            .doc('request')
-            .collection(employeeId)
-            .doc('dates')
-            .collection(
-                'fromDateStr') // You need to specify the correct collection here
-            .get();
-
-        for (QueryDocumentSnapshot dateDoc in dateSnapshot.docs) {
-          String fromDateStr = dateDoc.id;
-          QuerySnapshot detailsSnapshot = await _firestore
-              .collection('leave')
-              .doc('request')
-              .collection(employeeId)
-              .doc('dates')
-              .collection(fromDateStr)
-              .get();
-
-          for (QueryDocumentSnapshot detailDoc in detailsSnapshot.docs) {
-            leaveRequests.add(detailDoc.data() as Map<String, dynamic>);
-          }
-        }
-      }
-    } catch (e) {
-      print('Error fetching leave requests: $e');
-      throw e;
-    }
-
-    return leaveRequests;
   }
 }
