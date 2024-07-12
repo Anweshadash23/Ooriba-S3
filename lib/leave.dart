@@ -4,8 +4,7 @@ import 'services/leave_service.dart'; // Import the leave service
 
 class LeavePage extends StatefulWidget {
   final String? employeeId;
-  
-  
+
   const LeavePage({super.key, required this.employeeId});
   @override
   _LeavePageState createState() => _LeavePageState();
@@ -13,7 +12,7 @@ class LeavePage extends StatefulWidget {
 
 class _LeavePageState extends State<LeavePage> {
   final _formKey = GlobalKey<FormState>();
- late String empid;
+  late String empid;
   final LeaveService _leaveService =
       LeaveService(); // Instantiate the leave service
 
@@ -51,6 +50,23 @@ class _LeavePageState extends State<LeavePage> {
     }
   }
 
+  void fetchLeaveRequests() async {
+    try {
+      // Fetch all leave requests for the current employeeId
+      List<Map<String, dynamic>> leaveRequests =
+          await _leaveService.fetchAllLeaveRequests();
+
+      // Display the fetched leave requests in debug console
+      print('Fetched Leave Requests: $leaveRequests');
+
+      // Optionally, you can display the leave requests in UI as needed
+      // For simplicity, let's print them in the debug console
+    } catch (e) {
+      print('Error fetching leave requests: $e');
+      // Handle error as needed
+    }
+  }
+
   Widget _buildLabelWithStar(String label) {
     return RichText(
       text: TextSpan(
@@ -79,11 +95,12 @@ class _LeavePageState extends State<LeavePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-             TextFormField(
-  controller: TextEditingController(text:widget.employeeId),
-  decoration: InputDecoration(label: _buildLabelWithStar('Employee ID')),
-  enabled: false,
-),
+              TextFormField(
+                controller: TextEditingController(text: widget.employeeId),
+                decoration:
+                    InputDecoration(label: _buildLabelWithStar('Employee ID')),
+                enabled: false,
+              ),
 
               SizedBox(height: 12.0), // Reduced spacing
               DropdownButtonFormField(
@@ -191,13 +208,13 @@ class _LeavePageState extends State<LeavePage> {
                   onPressed: () async {
                     if (_formKey.currentState?.validate() ?? false) {
                       try {
-                        if(widget.employeeId==null){
-                          empid="null";
-                        }else {
-                          empid=widget.employeeId!;
+                        if (widget.employeeId == null) {
+                          empid = "null";
+                        } else {
+                          empid = widget.employeeId!;
                         }
                         await _leaveService.applyLeave(
-                          employeeId:empid,
+                          employeeId: empid,
                           leaveType: selectedLeaveType,
                           fromDate: selectedLeaveType == 'Partial Leave'
                               ? null
@@ -222,6 +239,51 @@ class _LeavePageState extends State<LeavePage> {
                     minimumSize: Size(120, 40), // Adjusted button size
                   ),
                 ),
+              ),
+              SizedBox(height: 20.0), // Added space before leave details
+              FutureBuilder(
+                future: _leaveService.fetchAllLeaveRequests(),
+                builder: (BuildContext context,
+                    AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return CircularProgressIndicator();
+                  } else {
+                    if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Text('No leave requests found.');
+                    } else {
+                      // Display fetched leave details
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: snapshot.data!.map((leaveRequest) {
+                          return Card(
+                            margin: EdgeInsets.symmetric(vertical: 8.0),
+                            child: Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(
+                                      'Employee ID: ${leaveRequest['employeeId']}'),
+                                  Text(
+                                      'Leave Type: ${leaveRequest['leaveType']}'),
+                                  Text(
+                                      'From Date: ${leaveRequest['fromDate']}'),
+                                  Text('To Date: ${leaveRequest['toDate']}'),
+                                  Text(
+                                      'Number of Days: ${leaveRequest['numberOfDays']}'),
+                                  Text(
+                                      'Leave Reason: ${leaveRequest['leaveReason']}'),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }
+                  }
+                },
               ),
             ],
           ),

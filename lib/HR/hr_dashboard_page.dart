@@ -432,6 +432,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ooriba/HR/employee_details_page.dart';
 import 'package:ooriba/HR/registered_employees_page.dart';
 import 'package:ooriba/leave_approval.dart';
+import 'package:ooriba/leave_report.dart';
 import 'package:ooriba/services/auth_service.dart';
 import 'package:ooriba/services/registered_service.dart';
 import 'attendance.dart'; // Assuming this file contains DatePickerButton widget
@@ -502,6 +503,20 @@ class _HRDashboardPageState extends State<HRDashboardPage> {
                   MaterialPageRoute(
                     builder: (context) =>
                         LeaveApprovalPage(), // Navigate to LeaveApprovalPage
+                  ),
+                );
+              },
+            ),
+             ListTile(
+              leading: const Icon(Icons.time_to_leave),
+              title: const Text('Leave Report'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        LeaveReportPage(), // Navigate to LeaveApprovalPage
                   ),
                 );
               },
