@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'services/leave_service.dart'; // Import the leave service
@@ -50,17 +51,31 @@ class _LeavePageState extends State<LeavePage> {
     }
   }
 
-  void fetchLeaveRequests() async {
+  Future<void> searchLeaveRequests() async {
     try {
-      // Fetch all leave requests for the current employeeId
-      List<Map<String, dynamic>> leaveRequests =
-          await _leaveService.fetchAllLeaveRequests();
+      DateTime? fromDate = fromDateController.text.isNotEmpty
+          ? dateFormat.parse(fromDateController.text)
+          : null;
+      DateTime? toDate = toDateController.text.isNotEmpty
+          ? dateFormat.parse(toDateController.text)
+          : null;
 
-      // Display the fetched leave requests in debug console
-      print('Fetched Leave Requests: $leaveRequests');
+      // Fetch leave requests for the specific employeeId within the date range
+      List<Map<String, dynamic>> leaveRequests =
+          await _leaveService.fetchLeaveRequests(
+        employeeId: widget.employeeId!,
+        fromDate: fromDate,
+        toDate: toDate,
+      );
+
+      // Display the filtered leave requests in debug console
+      print('Filtered Leave Requests: $leaveRequests');
 
       // Optionally, you can display the leave requests in UI as needed
       // For simplicity, let's print them in the debug console
+      setState(() {
+        _filteredLeaveRequests = leaveRequests;
+      });
     } catch (e) {
       print('Error fetching leave requests: $e');
       // Handle error as needed
@@ -82,6 +97,8 @@ class _LeavePageState extends State<LeavePage> {
     );
   }
 
+  List<Map<String, dynamic>> _filteredLeaveRequests = [];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,7 +118,6 @@ class _LeavePageState extends State<LeavePage> {
                     InputDecoration(label: _buildLabelWithStar('Employee ID')),
                 enabled: false,
               ),
-
               SizedBox(height: 12.0), // Reduced spacing
               DropdownButtonFormField(
                 value: selectedLeaveType,
@@ -240,51 +256,60 @@ class _LeavePageState extends State<LeavePage> {
                   ),
                 ),
               ),
-              SizedBox(height: 20.0), // Added space before leave details
-              FutureBuilder(
-                future: _leaveService.fetchAllLeaveRequests(),
-                builder: (BuildContext context,
-                    AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return CircularProgressIndicator();
-                  } else {
-                    if (snapshot.hasError) {
-                      return Text('Error: ${snapshot.error}');
-                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Text('No leave requests found.');
-                    } else {
-                      // Display fetched leave details
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: snapshot.data!.map((leaveRequest) {
-                          return Card(
-                            margin: EdgeInsets.symmetric(vertical: 8.0),
-                            child: Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Text(
-                                      'Employee ID: ${leaveRequest['employeeId']}'),
-                                  Text(
-                                      'Leave Type: ${leaveRequest['leaveType']}'),
-                                  Text(
-                                      'From Date: ${leaveRequest['fromDate']}'),
-                                  Text('To Date: ${leaveRequest['toDate']}'),
-                                  Text(
-                                      'Number of Days: ${leaveRequest['numberOfDays']}'),
-                                  Text(
-                                      'Leave Reason: ${leaveRequest['leaveReason']}'),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      );
-                    }
-                  }
-                },
+              SizedBox(height: 20.0), // Added space before search button
+              Center(
+                // Centered Search Button
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await searchLeaveRequests();
+                  },
+                  child: Text('Search'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(120, 40), // Adjusted button size
+                  ),
+                ),
               ),
+              SizedBox(height: 20.0), // Added space before leave details
+              if (_filteredLeaveRequests.isNotEmpty)
+                ..._filteredLeaveRequests.map((leaveRequest) {
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            'Employee ID: ${leaveRequest['employeeId']}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text('Leave Type: ${leaveRequest['leaveType']}'),
+                          Text(
+                            'From Date: ${dateFormat.format((leaveRequest['fromDate'] as Timestamp).toDate())}',
+                          ),
+                          Text(
+                            'To Date: ${dateFormat.format((leaveRequest['toDate'] as Timestamp).toDate())}',
+                          ),
+                          Text(
+                              'Number of Days: ${leaveRequest['numberOfDays']}'),
+                          Text('Leave Reason: ${leaveRequest['leaveReason']}'),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              if (_filteredLeaveRequests.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20.0),
+                  child: Center(
+                    child: Text(
+                      'Please select the date range to see the leave history',
+                      style: TextStyle(fontSize: 16.0),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
