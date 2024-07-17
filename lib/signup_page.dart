@@ -489,6 +489,27 @@ class _SignUpPageState extends State<SignUpPage> {
   //     });
   //   }
   // }
+  @override
+  void initState() {
+    super.initState();
+    _firstName.addListener(() {
+      _capitalizeFirstLetter(_firstName);
+    });
+    _lastName.addListener(() {
+      _capitalizeFirstLetter(_lastName);
+    });
+  }
+
+  void _capitalizeFirstLetter(TextEditingController controller) {
+    String text = controller.text;
+    if (text.isNotEmpty) {
+      controller.value = controller.value.copyWith(
+        text: text[0].toUpperCase() + text.substring(1),
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+  }
+
   Future<void> _pickImage(int x) async {
     final ImageSource? source = await showDialog<ImageSource>(
       context: context,
@@ -578,10 +599,6 @@ class _SignUpPageState extends State<SignUpPage> {
           SnackBar(content: Text('Failed to sign up: $e')),
         );
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please verify your phone number')),
-      );
     }
   }
 
@@ -728,15 +745,13 @@ class _SignUpPageState extends State<SignUpPage> {
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                         ),
+                        keyboardType: TextInputType.phone,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your phone number';
                           }
-                          if (value.length != 10) {
-                            return 'Phone number must be exactly 10 digits';
-                          }
-                          if (RegExp(r'[^0-9]').hasMatch(value)) {
-                            return 'Phone number can only contain digits';
+                          if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                            return 'Please enter a valid 10-digit phone number';
                           }
                           return null;
                         },

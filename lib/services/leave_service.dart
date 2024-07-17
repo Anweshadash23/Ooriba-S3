@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class LeaveService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Apply for leave
   Future<void> applyLeave({
     required String employeeId,
     required String leaveType,
@@ -41,6 +42,7 @@ class LeaveService {
     }
   }
 
+  // Update leave status (approve or reject)
   Future<void> updateLeaveStatus({
     required String employeeId,
     required String fromDateStr,
@@ -131,6 +133,7 @@ class LeaveService {
     }
   }
 
+  // Fetch leave details for a specific leave request
   Future<Map<String, dynamic>?> fetchLeaveDetails(
       String employeeId, String fromDateStr) async {
     try {
@@ -147,6 +150,7 @@ class LeaveService {
     }
   }
 
+  // Fetch all leave requests across all employees
   Future<List<Map<String, dynamic>>> fetchAllLeaveRequests() async {
     try {
       // Step 1: Fetch all employeeIds from Regemp collection
@@ -190,6 +194,7 @@ class LeaveService {
     }
   }
 
+  // Fetch leave requests for a specific employee
   Future<List<Map<String, dynamic>>> fetchLeaveRequestsByEmployeeId(
       String employeeId) async {
     try {
@@ -210,6 +215,7 @@ class LeaveService {
     }
   }
 
+  // Fetch leave count for a specific employee
   Future<Map<String, dynamic>?> fetchLeaveCount(String employeeId) async {
     try {
       DocumentSnapshot doc =
@@ -221,6 +227,7 @@ class LeaveService {
     }
   }
 
+  // Fetch leave requests (accepted) within a specific date range for a specific employee
   Future<List<Map<String, dynamic>>> fetchLeaveRequests({
     required String employeeId,
     DateTime? fromDate,
@@ -251,6 +258,38 @@ class LeaveService {
     return leaveRequests;
   }
 
+  // Fetch all leave dates for a specific employee
+  Future<List<DateTime>> fetchLeaveDatesByEmployeeId(String employeeId) async {
+    try {
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('leave')
+          .doc('accept')
+          .collection(employeeId)
+          .get();
+
+      List<DateTime> leaveDates = querySnapshot.docs
+          .map((doc) {
+            DateTime fromDate = (doc['fromDate'] as Timestamp).toDate();
+            DateTime toDate = (doc['toDate'] as Timestamp).toDate();
+            List<DateTime> dates = [];
+            for (var i = fromDate;
+                i.isBefore(toDate.add(Duration(days: 1)));
+                i = i.add(Duration(days: 1))) {
+              dates.add(i);
+            }
+            return dates;
+          })
+          .expand((element) => element)
+          .toList();
+
+      return leaveDates;
+    } catch (e) {
+      print('Error fetching leave dates: $e');
+      throw e;
+    }
+  }
+
+  // Fetch details of rejected leave request
   Future<Map<String, dynamic>?> fetchRejectedLeaveDetails(
       String employeeId, String fromDateStr) async {
     try {
@@ -268,6 +307,26 @@ class LeaveService {
       }
     } catch (e) {
       print('Error fetching rejected leave details: $e');
+      throw e;
+    }
+  }
+
+  // Fetch leave requests for a specific date across all employees
+  Future<List<Map<String, dynamic>>> fetchLeaveRequestsByDate(
+      DateTime selectedDate) async {
+    try {
+      QuerySnapshot querySnapshot = await _firestore
+          .collectionGroup('request')
+          .where('fromDate', isEqualTo: selectedDate)
+          .get();
+
+      List<Map<String, dynamic>> leaveRequests = querySnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+
+      return leaveRequests;
+    } catch (e) {
+      print('Error fetching leave requests by date: $e');
       throw e;
     }
   }

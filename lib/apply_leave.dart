@@ -32,11 +32,38 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
 
   List<Map<String, dynamic>> searchResults = [];
   bool showSearchResults = false;
-
   @override
   void initState() {
     super.initState();
     numberOfDaysController.text = '0';
+    employeeIdSearchController.addListener(() {
+      _formatSearchText(employeeIdSearchController);
+    });
+  }
+
+  void _formatSearchText(TextEditingController controller) {
+    String text = controller.text;
+    if (text.isNotEmpty) {
+      // Split text into words
+      List<String> words = text.split(' ');
+      for (int i = 0; i < words.length; i++) {
+        if (words[i].isNotEmpty) {
+          words[i] =
+              words[i][0].toUpperCase() + words[i].substring(1).toLowerCase();
+        }
+      }
+      String formattedText = words.join(' ');
+
+      // Check if the text is an employee ID and fully capitalize it
+      if (RegExp(r'^[a-zA-Z]+\d+$').hasMatch(formattedText)) {
+        formattedText = formattedText.toUpperCase();
+      }
+
+      controller.value = controller.value.copyWith(
+        text: formattedText,
+        selection: TextSelection.collapsed(offset: formattedText.length),
+      );
+    }
   }
 
   void calculateDays() {
@@ -90,57 +117,37 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
     }
   }
 
-  // Future<Map<String, dynamic>?> fetchAcceptedLeaveDetails(
-  //     String employeeId) async {
-  //   try {
-  //     if (employeeId.isEmpty) {
-  //       return null; // Handle empty employeeId case
-  //     }
-
-  //     QuerySnapshot<Map<String, dynamic>> querySnapshot = await _firestore
-  //         .collection('leave')
-  //         .doc('accept')
-  //         .collection(employeeId)
-  //         .get();
-
-  //     if (querySnapshot.docs.isNotEmpty) {
-  //       return querySnapshot.docs.first.data();
-  //     } else {
-  //       return null;
-  //     }
-  //   } catch (e) {
-  //     print('Error fetching accepted leave details: $e');
-  //     throw e;
-  //   }
-  // }
-
   Future<List<Map<String, dynamic>>> searchEmployees(String query) async {
     try {
+      // First, split the query into parts to handle both first and last name search
+      List<String> parts = query.split(' ');
+
+      // Query where either firstName or lastName matches the query
       QuerySnapshot<Map<String, dynamic>> querySnapshot = await _firestore
           .collection('Regemp')
-          .where('firstName', isGreaterThanOrEqualTo: query.toLowerCase())
           .where('firstName',
-              isLessThanOrEqualTo: '${query.toLowerCase()}\uf8ff')
+              isEqualTo: parts[0]) // Search by first part as firstName
           .get();
 
       List<Map<String, dynamic>> employees =
           querySnapshot.docs.map((doc) => doc.data()).toList();
 
       if (employees.isEmpty) {
+        // If no results, try searching by the second part as lastName
         querySnapshot = await _firestore
             .collection('Regemp')
-            .where('lastName', isGreaterThanOrEqualTo: query.toLowerCase())
-            .where('lastName',
-                isLessThanOrEqualTo: '${query.toLowerCase()}\uf8ff')
+            .where('lastName', isEqualTo: parts[0])
             .get();
 
         employees = querySnapshot.docs.map((doc) => doc.data()).toList();
       }
 
-      if (employees.isEmpty) {
+      // If still no results, try searching by full name
+      if (employees.isEmpty && parts.length > 1) {
+        String fullNameQuery = '${parts[0]} ${parts[1]}';
         querySnapshot = await _firestore
             .collection('Regemp')
-            .where('employeeId', isEqualTo: query.toUpperCase())
+            .where('fullName', isEqualTo: fullNameQuery)
             .get();
 
         employees = querySnapshot.docs.map((doc) => doc.data()).toList();
@@ -430,11 +437,9 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
                     ),
                     // SizedBox(height: 20.0),
                     // FutureBuilder<Map<String, dynamic>?>(
-                    //   future:
-                    //       fetchAcceptedLeaveDetails(employeeIdController.text),
+                    //   future: fetchAcceptedLeaveDetails(employeeIdController.text),
                     //   builder: (context, snapshot) {
-                    //     if (snapshot.connectionState ==
-                    //         ConnectionState.waiting) {
+                    //     if (snapshot.connectionState == ConnectionState.waiting) {
                     //       return CircularProgressIndicator();
                     //     }
                     //     if (snapshot.hasError) {

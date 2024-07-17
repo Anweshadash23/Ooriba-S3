@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'services/leave_service.dart'; // Import the leave service
 
 class LeavePage extends StatefulWidget {
@@ -37,6 +38,7 @@ class _LeavePageState extends State<LeavePage> {
   void initState() {
     super.initState();
     numberOfDaysController.text = '0';
+    _fetchEmployeeLeaveDates();
   }
 
   void calculateDays() {
@@ -98,6 +100,37 @@ class _LeavePageState extends State<LeavePage> {
   }
 
   List<Map<String, dynamic>> _filteredLeaveRequests = [];
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+  Set<DateTime> _employeeLeaveDates = {};
+
+  Future<void> _fetchEmployeeLeaveDates() async {
+    try {
+      List<Map<String, dynamic>> leaveRequests =
+          await _leaveService.fetchLeaveRequests(
+        employeeId: widget.employeeId!,
+      );
+
+      Set<DateTime> leaveDates = {};
+      for (var request in leaveRequests) {
+        DateTime fromDate = (request['fromDate'] as Timestamp).toDate();
+        DateTime toDate = (request['toDate'] as Timestamp).toDate();
+        for (DateTime date = fromDate;
+            date.isBefore(toDate) || date.isAtSameMomentAs(toDate);
+            date = date.add(Duration(days: 1))) {
+          leaveDates.add(date);
+        }
+      }
+
+      print('Leave Dates: $leaveDates'); // Debug statement
+
+      setState(() {
+        _employeeLeaveDates = leaveDates;
+      });
+    } catch (e) {
+      print('Error fetching leave dates: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -269,32 +302,44 @@ class _LeavePageState extends State<LeavePage> {
                   ),
                 ),
               ),
-              SizedBox(height: 20.0), // Added space before leave details
+              SizedBox(height: 20.0),
               if (_filteredLeaveRequests.isNotEmpty)
                 ..._filteredLeaveRequests.map((leaveRequest) {
                   return Card(
                     margin: EdgeInsets.symmetric(vertical: 8.0),
                     child: Padding(
                       padding: EdgeInsets.all(8.0),
-                      child: Column(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: <Widget>[
-                          Text(
-                            'Employee ID: ${leaveRequest['employeeId']}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  '${leaveRequest['employeeId']}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4.0),
+                                Text('${leaveRequest['leaveReason']}'),
+                                SizedBox(height: 4.0),
+                                Text(
+                                  '${dateFormat.format((leaveRequest['fromDate'] as Timestamp).toDate())} - ${dateFormat.format((leaveRequest['toDate'] as Timestamp).toDate())}',
+                                ),
+                              ],
                             ),
                           ),
-                          Text('Leave Type: ${leaveRequest['leaveType']}'),
-                          Text(
-                            'From Date: ${dateFormat.format((leaveRequest['fromDate'] as Timestamp).toDate())}',
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text('${leaveRequest['leaveType']}'),
+                              SizedBox(height: 4.0),
+                              Text('${leaveRequest['numberOfDays']} days'),
+                            ],
                           ),
-                          Text(
-                            'To Date: ${dateFormat.format((leaveRequest['toDate'] as Timestamp).toDate())}',
-                          ),
-                          Text(
-                              'Number of Days: ${leaveRequest['numberOfDays']}'),
-                          Text('Leave Reason: ${leaveRequest['leaveReason']}'),
                         ],
                       ),
                     ),
@@ -310,6 +355,60 @@ class _LeavePageState extends State<LeavePage> {
                     ),
                   ),
                 ),
+              TableCalendar(
+                focusedDay: _focusedDay,
+                firstDay: DateTime(2000),
+                lastDay: DateTime(2100),
+                selectedDayPredicate: (day) {
+                  return isSameDay(_selectedDay, day);
+                },
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay =
+                        focusedDay; // update `_focusedDay` here as well
+                  });
+                },
+                calendarStyle: CalendarStyle(
+                  todayDecoration: BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
+                  ),
+                  selectedDecoration: BoxDecoration(
+                    color: Colors.orange,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                calendarBuilders: CalendarBuilders(
+                  defaultBuilder: (context, day, focusedDay) {
+                    bool isOnLeave = _employeeLeaveDates.any((leaveDate) =>
+                        leaveDate.year == day.year &&
+                        leaveDate.month == day.month &&
+                        leaveDate.day == day.day);
+                    if (isOnLeave) {
+                      return Container(
+                        margin: const EdgeInsets.all(6.0),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${day.day}',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      );
+                    }
+                    return null;
+                  },
+                ),
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: false, // Hide the 2 weeks button
+                  titleCentered: true, // Center the title
+                  formatButtonShowsNext: false,
+                ),
+              )
             ],
           ),
         ),
