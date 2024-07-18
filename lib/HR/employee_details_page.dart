@@ -152,9 +152,9 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
           isEditing = false;
         });
       } catch (e) {
-        print('Error saving employee data: $e');
+        print('Please fill all the required details');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update employee details: $e')),
+          SnackBar(content: Text('Please fill all the required details')),
         );
       }
     }
@@ -168,20 +168,26 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
       employeeData['status'] = 'Active';
       employeeData['role'] = 'Standard';
     });
-    try {
-      // Save user to Firebase Authentication
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-              email: employeeData['email'], password: employeeData['password']);
-      User? user = userCredential.user;
 
-      if (user != null) {
-        user.updateProfile(displayName: employeeData['firstName']);
-        // user.sendEmailVerification();
+    try {
+      // Save user to Firebase Authentication only if email is present
+      if (employeeData['email'] != null && employeeData['email'].isNotEmpty) {
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+                email: employeeData['email'],
+                password: employeeData['password']);
+        User? user = userCredential.user;
+
+        if (user != null) {
+          user.updateProfile(displayName: employeeData['firstName']);
+          // user.sendEmailVerification();
+        }
       }
 
-      // Send acceptance email using EmailJS
-      await _acceptMailService.sendAcceptanceEmail(employeeData['email']);
+      // Send acceptance email using EmailJS only if email is present
+      if (employeeData['email'] != null && employeeData['email'].isNotEmpty) {
+        await _acceptMailService.sendAcceptanceEmail(employeeData['email']);
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

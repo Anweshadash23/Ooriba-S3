@@ -53,36 +53,36 @@ class _LeavePageState extends State<LeavePage> {
     }
   }
 
-  Future<void> searchLeaveRequests() async {
-    try {
-      DateTime? fromDate = fromDateController.text.isNotEmpty
-          ? dateFormat.parse(fromDateController.text)
-          : null;
-      DateTime? toDate = toDateController.text.isNotEmpty
-          ? dateFormat.parse(toDateController.text)
-          : null;
+  // Future<void> searchLeaveRequests() async {
+  //   try {
+  //     DateTime? fromDate = fromDateController.text.isNotEmpty
+  //         ? dateFormat.parse(fromDateController.text)
+  //         : null;
+  //     DateTime? toDate = toDateController.text.isNotEmpty
+  //         ? dateFormat.parse(toDateController.text)
+  //         : null;
 
-      // Fetch leave requests for the specific employeeId within the date range
-      List<Map<String, dynamic>> leaveRequests =
-          await _leaveService.fetchLeaveRequests(
-        employeeId: widget.employeeId!,
-        fromDate: fromDate,
-        toDate: toDate,
-      );
+  //     // Fetch leave requests for the specific employeeId within the date range
+  //     List<Map<String, dynamic>> leaveRequests =
+  //         await _leaveService.fetchLeaveRequests(
+  //       employeeId: widget.employeeId!,
+  //       fromDate: fromDate,
+  //       toDate: toDate,
+  //     );
 
-      // Display the filtered leave requests in debug console
-      print('Filtered Leave Requests: $leaveRequests');
+  //     // Display the filtered leave requests in debug console
+  //     print('Filtered Leave Requests: $leaveRequests');
 
-      // Optionally, you can display the leave requests in UI as needed
-      // For simplicity, let's print them in the debug console
-      setState(() {
-        _filteredLeaveRequests = leaveRequests;
-      });
-    } catch (e) {
-      print('Error fetching leave requests: $e');
-      // Handle error as needed
-    }
-  }
+  //     // Optionally, you can display the leave requests in UI as needed
+  //     // For simplicity, let's print them in the debug console
+  //     setState(() {
+  //       _filteredLeaveRequests = leaveRequests;
+  //     });
+  //   } catch (e) {
+  //     print('Error fetching leave requests: $e');
+  //     // Handle error as needed
+  //   }
+  // }
 
   Widget _buildLabelWithStar(String label) {
     return RichText(
@@ -289,19 +289,19 @@ class _LeavePageState extends State<LeavePage> {
                   ),
                 ),
               ),
-              SizedBox(height: 20.0), // Added space before search button
-              Center(
-                // Centered Search Button
-                child: ElevatedButton(
-                  onPressed: () async {
-                    await searchLeaveRequests();
-                  },
-                  child: Text('Search'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(120, 40), // Adjusted button size
-                  ),
-                ),
-              ),
+              // SizedBox(height: 20.0), // Added space before search button
+              // Center(
+              //   // Centered Search Button
+              //   child: ElevatedButton(
+              //     onPressed: () async {
+              //       await searchLeaveRequests();
+              //     },
+              //     child: Text('Search'),
+              //     style: ElevatedButton.styleFrom(
+              //       minimumSize: Size(120, 40), // Adjusted button size
+              //     ),
+              //   ),
+              // ),
               SizedBox(height: 20.0),
               if (_filteredLeaveRequests.isNotEmpty)
                 ..._filteredLeaveRequests.map((leaveRequest) {

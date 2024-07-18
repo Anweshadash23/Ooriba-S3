@@ -56,7 +56,7 @@ class AuthService {
       return false;
     }
 
-    if (identifier == "Admin" && password == "Admin") {
+    if (identifier == "admin@gmail.com" && password == "Admin@1") {
       await saveUserSession(identifier, "Admin");
       Navigator.pushReplacement(
         context,
