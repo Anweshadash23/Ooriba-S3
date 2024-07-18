@@ -1,16 +1,23 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:ooriba/facial/ML/Recognition.dart';
 import 'package:ooriba/facial/ML/Recognizer.dart';
+import 'package:ooriba/services/employee_location_service.dart';
+import 'package:ooriba/services/geo_service.dart';
 import 'package:ooriba/services/retrieveDataByEmployeeId.dart';
 import 'package:ooriba/services/user.dart';
+import 'package:ooriba/siteManager/siteManagerDashboard.dart';
 
 class RecognitionScreen extends StatefulWidget {
-  const RecognitionScreen({super.key});
+  final String phoneNumber;
+  final Map<String, dynamic> userDetails;
+  const RecognitionScreen(
+      {super.key, required this.phoneNumber, required this.userDetails});
 
   @override
   State<RecognitionScreen> createState() => _RecognitionScreenState();
@@ -26,6 +33,9 @@ class _RecognitionScreenState extends State<RecognitionScreen> {
   final UserFirestoreService firestoreService = UserFirestoreService();
   DateTime? checkInTime;
   DateTime? checkOutTime;
+  final EmployeeLocationService employeeLocationService =
+      EmployeeLocationService();
+  final GeoService geoService = GeoService();
 
   List<Recognition> recognitions = [];
 
@@ -80,6 +90,10 @@ class _RecognitionScreenState extends State<RecognitionScreen> {
       checkInTime = checkInOutData['checkIn'];
       checkOutTime = checkInOutData['checkOut'];
     });
+
+    Position position = await geoService.determinePosition();
+    await employeeLocationService.saveEmployeeLocation(
+        employeeId!, position, now, 'check-in'); // Save location
   }
 
   List<Face> faces = [];
@@ -158,7 +172,13 @@ class _RecognitionScreenState extends State<RecognitionScreen> {
     setState(() {
       isLoading = false;
     });
-    Navigator.pop(context, true);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Sitemanagerdashboard(
+            phoneNumber: widget.phoneNumber, userDetails: {}),
+      ),
+    );
   }
 
   Widget build(BuildContext context) {

@@ -9,7 +9,7 @@ import 'package:image/image.dart' as img;
 import 'package:ooriba/services/auth_service.dart';
 
 class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key});
+  const RegistrationScreen({super.key, required String siteManagerId});
 
   @override
   State<RegistrationScreen> createState() => _HomePageState();
@@ -128,7 +128,7 @@ class _HomePageState extends State<RegistrationScreen> {
                   decoration: const InputDecoration(
                       fillColor: Colors.white,
                       filled: true,
-                      hintText: "Enter Name"),
+                      hintText: "Enter Employee ID"),
                 ),
               ),
               const SizedBox(height: 10),

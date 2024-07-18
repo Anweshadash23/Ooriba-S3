@@ -54,7 +54,7 @@ class AcceptMailService {
       }
     } catch (e) {
       print('Error in sendAcceptanceEmail: $e');
-      throw Exception('Error in sendAcceptanceEmail: $e');
+      // throw Exception('Error in sendAcceptanceEmail: $e');     //importantttttttttttttttttttt
     }
   }
 }
