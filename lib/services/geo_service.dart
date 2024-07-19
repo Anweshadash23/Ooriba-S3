@@ -1,11 +1,27 @@
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GeoService {
-  // Set a fixed landmark position (update with your desired coordinates)
-  final double landmarkLatitude = 16.487026724481314;  // landmark latitude
-  final double landmarkLongitude = 80.5028066313203;  // landmark longitude
+  // Method to get location coordinates from Firestore
+  Future<Map<String, dynamic>> getLocationCoordinates(String prefix) async {
+    try {
+      DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
+          .collection('Locations')
+          .doc(prefix)
+          .get();
+
+      if (docSnapshot.exists) {
+        Map<String, dynamic> data = docSnapshot.data() as Map<String, dynamic>;
+        return {'latitude': data['latitude'], 'longitude': data['longitude']};
+      } else {
+        throw Exception('Location not found');
+      }
+    } catch (e) {
+      throw Exception('Error fetching location coordinates: $e');
+    }
+  }
 
   Future<Position> determinePosition() async {
     bool serviceEnabled;
@@ -52,17 +68,20 @@ class GeoService {
     }
   }
 
-  Future<double> getDistanceToLandmark(Position position) async {
+  Future<double> getDistanceToLandmark(Position position,
+      double landmarkLatitude, double landmarkLongitude) async {
     try {
-      return Geolocator.distanceBetween(
-          position.latitude, position.longitude, landmarkLatitude, landmarkLongitude);
+      return Geolocator.distanceBetween(position.latitude, position.longitude,
+          landmarkLatitude, landmarkLongitude);
     } catch (e) {
       throw Exception('Error calculating distance: $e');
     }
   }
 
-  Future<bool> isWithin50m(Position position) async {
-    double distance = await getDistanceToLandmark(position);
+  Future<bool> isWithin50m(Position position, double landmarkLatitude,
+      double landmarkLongitude) async {
+    double distance = await getDistanceToLandmark(
+        position, landmarkLatitude, landmarkLongitude);
     return distance <= 50;
   }
 }

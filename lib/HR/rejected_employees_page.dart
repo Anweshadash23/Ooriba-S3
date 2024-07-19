@@ -86,8 +86,66 @@ class RejectedEmployeeCard extends StatelessWidget {
         trailing: ElevatedButton(
           onPressed: () {
             // Add your onPressed code here!
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => RejectedEmployeeDetailsPage(
+                  firstName: firstName,
+                  lastName: lastName,
+                  phone: phone,
+                  email: email,
+                  reason: reason,
+                ),
+              ),
+            );
           },
           child: const Text('View More'),
+        ),
+      ),
+    );
+  }
+}
+
+class RejectedEmployeeDetailsPage extends StatelessWidget {
+  final String firstName;
+  final String lastName;
+  final String phone;
+  final String email;
+  final String reason;
+
+  const RejectedEmployeeDetailsPage({
+    super.key,
+    required this.firstName,
+    required this.lastName,
+    required this.phone,
+    required this.email,
+    required this.reason,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Employee Details'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('First Name: $firstName',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Text('Last Name: $lastName',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Text('Phone: $phone', style: Theme.of(context).textTheme.bodyLarge),
+            const SizedBox(height: 8),
+            Text('Email: $email', style: Theme.of(context).textTheme.bodyLarge),
+            const SizedBox(height: 8),
+            Text('Reason for Rejection: $reason',
+                style: Theme.of(context).textTheme.bodyLarge),
+          ],
         ),
       ),
     );

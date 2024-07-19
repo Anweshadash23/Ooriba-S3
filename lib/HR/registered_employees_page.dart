@@ -11,29 +11,6 @@ class RegisteredEmployeesPage extends StatefulWidget {
 
 class _RegisteredEmployeesPageState extends State<RegisteredEmployeesPage> {
   @override
-  // Widget build(BuildContext context) {
-  //   return Scaffold(
-  //     appBar: AppBar(
-  //       title: Text('Registered Employees'),
-  //     ),
-  //     body: StreamBuilder<QuerySnapshot>(
-  //       stream: FirebaseFirestore.instance.collection('Regemp').snapshots(),
-  //       builder: (context, snapshot) {
-  //         if (snapshot.connectionState == ConnectionState.waiting) {
-  //           return Center(child: CircularProgressIndicator());
-  //         } else if (snapshot.hasError) {
-  //           return Center(child: Text('Error: ${snapshot.error}'));
-  //         } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-  //           return Center(child: Text('No registered employees found'));
-  //         }
-
-  //         final employees = snapshot.data!.docs;
-  //         return ListView.builder(
-  //           itemCount: employees.length,
-  //           itemBuilder: (context, index) {
-  //             final data = employees[index].data() as Map<String, dynamic>;
-  //             return EmployeeCard(data: data);
-  //           },
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -178,6 +155,7 @@ class EmployeeDetailsDialog extends StatefulWidget {
 
 class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
   bool _isEditing = false;
+  List<String> _locations = [];
 
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
@@ -210,6 +188,11 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
   @override
   void initState() {
     super.initState();
+    _initializeControllers();
+    _fetchLocations();
+  }
+
+  void _initializeControllers() {
     _firstNameController =
         TextEditingController(text: widget.data['firstName']);
     _lastNameController = TextEditingController(text: widget.data['lastName']);
@@ -244,6 +227,15 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
     _selectedStatus = widget.data['status'] ?? '';
     _selectedRole = widget.data['role'] ?? '';
     _selectedEmployeeType = widget.data['employeeType'] ?? '';
+  }
+
+  Future<void> _fetchLocations() async {
+    final QuerySnapshot snapshot =
+        await FirebaseFirestore.instance.collection('Locations').get();
+    final locations = snapshot.docs.map((doc) => doc.id).toList();
+    setState(() {
+      _locations = locations;
+    });
   }
 
   @override
@@ -395,8 +387,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
                 'Technician',
                 'Executive'
               ]),
-              _buildDropdown('Location', _selectedLocation,
-                  ['Jaypore', 'Berhampur', 'Raigada']),
+              _buildDropdown('Location', _selectedLocation, _locations),
               _buildDropdown('Status', _selectedStatus, ['Active', 'Inactive']),
               _buildDropdown('Role', _selectedRole, ['Standard', 'HR']),
               _buildDropdown('Employee Type', _selectedEmployeeType,
@@ -565,10 +556,10 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
       ),
     );
   }
-}
 
-void main() {
-  runApp(const MaterialApp(
-    home: RegisteredEmployeesPage(),
-  ));
+  void main() {
+    runApp(const MaterialApp(
+      home: RegisteredEmployeesPage(),
+    ));
+  }
 }

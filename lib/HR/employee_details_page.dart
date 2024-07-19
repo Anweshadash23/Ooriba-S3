@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ooriba/employee_id_generator.dart';
 import 'package:ooriba/services/accept_mail_service.dart';
+import 'package:ooriba/services/admin/department_service.dart';
+import 'package:ooriba/services/designation_service.dart';
 import 'package:ooriba/services/registered_service.dart';
 import 'package:ooriba/services/reject_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -33,11 +35,18 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   final EmployeeIdGenerator _idGenerator = EmployeeIdGenerator();
   TextEditingController _joiningDateController = TextEditingController();
   List<String> locations = [];
+  final DesignationService _designationService = DesignationService();
+  List<String> _designations = [];
+  late String _selectedDesignation;
+  final DepartmentService _departmentService = DepartmentService();
+  List<String> _departments = [];
 
   @override
   void initState() {
     super.initState();
     fetchLocations();
+    _loadDesignations();
+    _fetchDepartments();
     employeeData = Map<String, dynamic>.from(widget.employeeData);
     _joiningDateController.text = employeeData['joiningDate'] ?? '';
 
@@ -67,6 +76,20 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     } catch (e) {
       print('Error fetching locations: $e');
     }
+  }
+
+  Future<void> _loadDesignations() async {
+    List<String> designations = await _designationService.getDesignations();
+    setState(() {
+      _designations = designations;
+    });
+  }
+
+  Future<void> _fetchDepartments() async {
+    List<String> departments = await _departmentService.getDepartments();
+    setState(() {
+      _departments = departments;
+    });
   }
 
   Future<void> _downloadImage(String url, String fileName) async {
@@ -762,29 +785,14 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                   ],
                 ),
               ),
-              _buildDropdownRow(
-                  'Department',
-                  'department',
-                  [
-                    'Sales',
-                    'Services',
-                    'Spares',
-                    'Administration',
-                    'Board of Directors'
-                  ],
+              _buildDropdownRow('Department', 'department', _departments,
                   isMandatory: true, validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Designation is required';
+                  return 'Department is required';
                 }
                 return null;
               }),
-              _buildDropdownRow('Designation', 'designation', [
-                'Manager',
-                'Senior Engineer',
-                'Junior Engineer',
-                'Technician',
-                'Executive'
-              ]),
+              _buildDropdownRow('Designation', 'designation', _designations),
               _buildDropdownRow(
                   'Employee Type', 'employeeType', ['On-site', 'Off-site']),
               _buildDropdownRow('Location', 'location', locations,

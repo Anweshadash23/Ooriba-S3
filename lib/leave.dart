@@ -103,6 +103,7 @@ class _LeavePageState extends State<LeavePage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Set<DateTime> _employeeLeaveDates = {};
+  Map<DateTime, Map<String, dynamic>> _leaveDetailsMap = {};
 
   Future<void> _fetchEmployeeLeaveDates() async {
     try {
@@ -119,6 +120,7 @@ class _LeavePageState extends State<LeavePage> {
             date.isBefore(toDate) || date.isAtSameMomentAs(toDate);
             date = date.add(Duration(days: 1))) {
           leaveDates.add(date);
+          _leaveDetailsMap[date] = request;
         }
       }
 
@@ -131,6 +133,8 @@ class _LeavePageState extends State<LeavePage> {
       print('Error fetching leave dates: $e');
     }
   }
+
+  Map<String, dynamic>? _selectedLeaveDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -289,72 +293,7 @@ class _LeavePageState extends State<LeavePage> {
                   ),
                 ),
               ),
-              // SizedBox(height: 20.0), // Added space before search button
-              // Center(
-              //   // Centered Search Button
-              //   child: ElevatedButton(
-              //     onPressed: () async {
-              //       await searchLeaveRequests();
-              //     },
-              //     child: Text('Search'),
-              //     style: ElevatedButton.styleFrom(
-              //       minimumSize: Size(120, 40), // Adjusted button size
-              //     ),
-              //   ),
-              // ),
               SizedBox(height: 20.0),
-              if (_filteredLeaveRequests.isNotEmpty)
-                ..._filteredLeaveRequests.map((leaveRequest) {
-                  return Card(
-                    margin: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Text(
-                                  '${leaveRequest['employeeId']}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 4.0),
-                                Text('${leaveRequest['leaveReason']}'),
-                                SizedBox(height: 4.0),
-                                Text(
-                                  '${dateFormat.format((leaveRequest['fromDate'] as Timestamp).toDate())} - ${dateFormat.format((leaveRequest['toDate'] as Timestamp).toDate())}',
-                                ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text('${leaveRequest['leaveType']}'),
-                              SizedBox(height: 4.0),
-                              Text('${leaveRequest['numberOfDays']} days'),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              if (_filteredLeaveRequests.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20.0),
-                  child: Center(
-                    child: Text(
-                      'Please select the date range to see the leave history',
-                      style: TextStyle(fontSize: 16.0),
-                    ),
-                  ),
-                ),
               TableCalendar(
                 focusedDay: _focusedDay,
                 firstDay: DateTime(2000),
@@ -367,6 +306,7 @@ class _LeavePageState extends State<LeavePage> {
                     _selectedDay = selectedDay;
                     _focusedDay =
                         focusedDay; // update `_focusedDay` here as well
+                    _selectedLeaveDetails = _leaveDetailsMap[selectedDay];
                   });
                 },
                 calendarStyle: CalendarStyle(
@@ -408,7 +348,51 @@ class _LeavePageState extends State<LeavePage> {
                   titleCentered: true, // Center the title
                   formatButtonShowsNext: false,
                 ),
-              )
+              ),
+              if (_selectedLeaveDetails != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20.0),
+                  child: Card(
+                    margin: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            'Employee ID: ${_selectedLeaveDetails!['employeeId']}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 4.0),
+                          Text(
+                              'Leave Type: ${_selectedLeaveDetails!['leaveType']}'),
+                          SizedBox(height: 4.0),
+                          Text(
+                            'Duration: ${dateFormat.format((_selectedLeaveDetails!['fromDate'] as Timestamp).toDate())} - ${dateFormat.format((_selectedLeaveDetails!['toDate'] as Timestamp).toDate())}',
+                          ),
+                          SizedBox(height: 4.0),
+                          Text(
+                              'Number of Days: ${_selectedLeaveDetails!['numberOfDays']}'),
+                          SizedBox(height: 4.0),
+                          Text(
+                              'Reason: ${_selectedLeaveDetails!['leaveReason']}'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (_selectedLeaveDetails == null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20.0),
+                  child: Center(
+                    child: Text(
+                      'Select a red date to see the leave details',
+                      style: TextStyle(fontSize: 16.0),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
