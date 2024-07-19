@@ -32,10 +32,12 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   final _formKey = GlobalKey<FormState>();
   final EmployeeIdGenerator _idGenerator = EmployeeIdGenerator();
   TextEditingController _joiningDateController = TextEditingController();
+  List<String> locations = [];
 
   @override
   void initState() {
     super.initState();
+    fetchLocations();
     employeeData = Map<String, dynamic>.from(widget.employeeData);
     _joiningDateController.text = employeeData['joiningDate'] ?? '';
 
@@ -55,6 +57,17 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
   //     throw 'Could not launch $url';
   //   }
   // }
+  Future<void> fetchLocations() async {
+    try {
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection('Locations').get();
+      setState(() {
+        locations = querySnapshot.docs.map((doc) => doc.id).toList();
+      });
+    } catch (e) {
+      print('Error fetching locations: $e');
+    }
+  }
 
   Future<void> _downloadImage(String url, String fileName) async {
     Dio dio = Dio();
@@ -478,7 +491,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Container(
             width: 150,
@@ -497,18 +510,16 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                     image: employeeData[key], // Image URL from employeeData
                     fit: BoxFit.cover,
                   )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('N/A'),
-                      SizedBox(height: 8.0),
-                      ElevatedButton(
-                        onPressed: () {
-                          // Add your function to capture an image here
-                        },
-                        child: Text('Capture Image'),
+                : Center(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Add your function to capture an image here
+                      },
+                      child: Text('Capture Image'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: Size(100, 40), // Adjust the size as needed
                       ),
-                    ],
+                    ),
                   ),
           ),
         ],
@@ -520,7 +531,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Container(
             width: 150,
@@ -529,7 +540,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          Expanded(
+          Container(
             child: employeeData[key] != null
                 ? Align(
                     alignment: Alignment.centerLeft,
@@ -541,25 +552,21 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                         await _downloadImage(url, fileName);
                       },
                       style: ElevatedButton.styleFrom(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                        minimumSize: Size(60, 40), // Adjust the size as needed
+                        minimumSize: Size(100, 40), // Adjust the size as needed
                       ),
                       child: Text('Download'),
                     ),
                   )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('N/A'),
-                      SizedBox(height: 8.0),
-                      ElevatedButton(
-                        onPressed: () {
-                          // Add your function to capture an attachment here
-                        },
-                        child: Text('Upload Attachment'),
+                : Center(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Add your function to capture an attachment here
+                      },
+                      child: Text('Upload Attachment'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: Size(100, 40), // Adjust the size as needed
                       ),
-                    ],
+                    ),
                   ),
           ),
         ],
@@ -780,8 +787,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
               ]),
               _buildDropdownRow(
                   'Employee Type', 'employeeType', ['On-site', 'Off-site']),
-              _buildDropdownRow(
-                  'Location', 'location', ['Jeypore', 'Berhampur', 'Rayagada'],
+              _buildDropdownRow('Location', 'location', locations,
                   isMandatory: true, validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Location is required';
