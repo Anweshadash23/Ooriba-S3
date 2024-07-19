@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ooriba/employee_id_generator.dart';
@@ -13,6 +14,9 @@ import 'package:ooriba/services/reject_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as Path;
+
 // import 'package:emailjs/emailjs.dart';
 // import 'package:sms_advanced/sms_advanced.dart';
 
@@ -90,6 +94,94 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     setState(() {
       _departments = departments;
     });
+  }
+
+  final ImagePicker _picker = ImagePicker();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  Future<void> _captureImage(String key) async {
+    final ImageSource source = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Select Image Source'),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Camera'),
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+          ),
+          TextButton(
+            child: Text('Gallery'),
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+          ),
+        ],
+      ),
+    );
+
+    if (source != null) {
+      final XFile? image = await _picker.pickImage(source: source);
+      if (image != null) {
+        // Upload the image to Firebase Storage
+        final String fileName = Path.basename(image.path);
+        final Reference storageRef = _storage.ref().child('images/$fileName');
+        final UploadTask uploadTask = storageRef.putFile(File(image.path));
+
+        final TaskSnapshot downloadUrl =
+            await uploadTask.whenComplete(() => {});
+        final String url = await downloadUrl.ref.getDownloadURL();
+
+        // Save the URL to Firestore
+        await _firestore
+            .collection('employeeData')
+            .doc(key)
+            .set({'dpImageUrl': url});
+
+        setState(() {
+          employeeData[key] = url;
+        });
+      }
+    }
+  }
+
+  Future<void> _captureAttachment(String key) async {
+    final ImageSource? source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Select Image Source'),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Camera'),
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+          ),
+          TextButton(
+            child: Text('Gallery'),
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+          ),
+        ],
+      ),
+    );
+
+    if (source != null) {
+      final XFile? image = await _picker.pickImage(source: source);
+      if (image != null) {
+        // Upload the image to Firebase Storage
+        final String fileName = Path.basename(image.path);
+        final Reference storageRef =
+            _storage.ref().child('attachments/$fileName');
+        final UploadTask uploadTask = storageRef.putFile(File(image.path));
+
+        final TaskSnapshot downloadUrl =
+            await uploadTask.whenComplete(() => {});
+        final String url = await downloadUrl.ref.getDownloadURL();
+
+        // Save the URL to Firestore
+        await _firestore.collection('employeeData').doc(key).set({key: url});
+
+        setState(() {
+          employeeData[key] = url;
+        });
+      }
+    }
   }
 
   Future<void> _downloadImage(String url, String fileName) async {
@@ -512,7 +604,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
 
   Widget _buildImageRow(String label, String key) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: .0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
@@ -524,20 +616,18 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
             ),
           ),
           Container(
-            width: 100, // Fixed width
+            width: 150, // Fixed width
             height: 100, // Fixed height
             child: employeeData[key] != null
                 ? FadeInImage.assetNetwork(
                     placeholder:
                         'assets/placeholder_image.png', // Placeholder image asset path
-                    image: employeeData[key], // Image URL from employeeData
+                    image: employeeData[key]!, // Image URL from employeeData
                     fit: BoxFit.cover,
                   )
                 : Center(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Add your function to capture an image here
-                      },
+                      onPressed: () => _captureImage(key),
                       child: Text('Capture Image'),
                       style: ElevatedButton.styleFrom(
                         minimumSize: Size(100, 40), // Adjust the size as needed
@@ -569,10 +659,11 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                     alignment: Alignment.centerLeft,
                     child: ElevatedButton(
                       onPressed: () async {
-                        final url = employeeData[key];
+                        final url = employeeData[key]!;
                         final fileName =
                             url.split('/').last; // Extract file name from URL
-                        await _downloadImage(url, fileName);
+                        await _downloadImage(url,
+                            fileName); // Implement this function to download image
                       },
                       style: ElevatedButton.styleFrom(
                         minimumSize: Size(100, 40), // Adjust the size as needed
@@ -582,9 +673,7 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                   )
                 : Center(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Add your function to capture an attachment here
-                      },
+                      onPressed: () => _captureAttachment(key),
                       child: Text('Upload Attachment'),
                       style: ElevatedButton.styleFrom(
                         minimumSize: Size(100, 40), // Adjust the size as needed
@@ -815,7 +904,8 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
                 'Inactive',
                 'On Hold',
               ]),
-              _buildDropdownRow('Role', 'role', ['Standard', 'HR']),
+              _buildDropdownRow(
+                  'Role', 'role', ['Standard', 'HR', 'SiteManager']),
             ]),
           ],
         ),

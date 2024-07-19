@@ -252,17 +252,6 @@ class LoginPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        // ElevatedButton(
-                        //   onPressed: () {
-                        //     Navigator.push(
-                        //       context,
-                        //       MaterialPageRoute(
-                        //         builder: (context) => AdminDashboardPage(),
-                        //       ),
-                        //     );
-                        //   },
-                        //   child: const Text('Admin'),
-                        // ),
                       ],
                     ),
                   ),
@@ -271,6 +260,17 @@ class LoginPage extends StatelessWidget {
             ),
           );
         },
+      ),
+      bottomNavigationBar: Container(
+        color: Color.fromARGB(255, 66, 66,
+            66), // Bottom navigation bar background color set to blue
+        padding: const EdgeInsets.all(0.0),
+        child: Text(
+          'Copyright © 2024 Ooriba motors Pvt Ltd,Ganjam Odisha',
+          style:
+              const TextStyle(color: Colors.white), // Text color set to white
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }

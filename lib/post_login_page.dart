@@ -164,7 +164,7 @@ class _PostLoginPageState extends State<PostLoginPage> {
       );
     } catch (e) {
       print(e);
-      Fluttertoast.showToast(msg: 'Error: $e');
+      Fluttertoast.showToast(msg: 'You are not within the location');
       setState(() {
         isLoading = false;
       });

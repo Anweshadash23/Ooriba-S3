@@ -388,13 +388,13 @@ class _SitemanagerdashboardState extends State<Sitemanagerdashboard> {
                   // Handle Attendance tap
                 },
               ),
-              ListTile(
-                leading: Icon(Icons.settings),
-                title: Text('Settings'),
-                onTap: () {
-                  // Handle Settings tap
-                },
-              ),
+              // ListTile(
+              //   leading: Icon(Icons.settings),
+              //   title: Text('Settings'),
+              //   onTap: () {
+              //     // Handle Settings tap
+              //   },
+              // ),
               ListTile(
                 leading: Icon(Icons.logout),
                 title: Text('Logout'),

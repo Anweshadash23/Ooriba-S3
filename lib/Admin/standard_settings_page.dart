@@ -5,7 +5,6 @@ import 'package:ooriba/services/admin/department_service.dart';
 import 'package:ooriba/services/admin/leave_type_service.dart';
 import 'package:ooriba/services/admin/logo_service.dart';
 import 'package:ooriba/services/designation_service.dart';
-
 import 'package:ooriba/services/location_service.dart';
 import 'package:provider/provider.dart';
 
@@ -17,7 +16,8 @@ class StandardSettingsPage extends StatefulWidget {
 class _StandardSettingsPageState extends State<StandardSettingsPage> {
   final TextEditingController _companyNameController = TextEditingController();
   final TextEditingController _locationNameController = TextEditingController();
-  final TextEditingController _locationCodeController = TextEditingController();
+  final TextEditingController _locationPrefixController =
+      TextEditingController();
   final TextEditingController _locationLatController = TextEditingController();
   final TextEditingController _locationLngController = TextEditingController();
   final TextEditingController _locationMaxLeaveController =
@@ -81,9 +81,9 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
           'name': doc.id,
           'prefix': doc['prefix'],
           'coordinates': doc['coordinates'],
-          // 'max_leave': doc['max_leave'],
-          // 'holiday': doc['holiday'],
-          // 'working_days': doc['working_days'],
+          'max_leave': doc['max_leave'],
+          'holiday': doc['holiday'],
+          'working_days': doc['working_days'],
         };
       }).toList();
     });
@@ -126,14 +126,14 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
 
   Future<void> _addLocation() async {
     String locationName = _locationNameController.text;
-    String code = _locationCodeController.text;
+    String prefix = _locationPrefixController.text;
     double latitude = double.parse(_locationLatController.text);
     double longitude = double.parse(_locationLngController.text);
     int maxLeave = int.parse(_locationMaxLeaveController.text);
     int workingDays = int.parse(_locationWorkingDaysController.text);
 
     await _firestore.collection('Locations').doc(locationName).set({
-      'code': code,
+      'prefix': prefix,
       'coordinates': GeoPoint(latitude, longitude),
       'max_leave': maxLeave,
       'holiday': _selectedHoliday,
@@ -143,14 +143,14 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
     setState(() {
       _locations.add({
         'name': locationName,
-        'code': code,
+        'prefix': prefix,
         'coordinates': GeoPoint(latitude, longitude),
         'max_leave': maxLeave,
         'holiday': _selectedHoliday,
         'working_days': workingDays,
       });
       _locationNameController.clear();
-      _locationCodeController.clear();
+      _locationPrefixController.clear();
       _locationLatController.clear();
       _locationLngController.clear();
       _locationMaxLeaveController.clear();
@@ -161,7 +161,7 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
 
   Future<void> _editLocation(Map<String, dynamic> location) async {
     _locationNameController.text = location['name'];
-    _locationCodeController.text = location['code'];
+    _locationPrefixController.text = location['prefix'];
     _locationLatController.text = location['coordinates'].latitude.toString();
     _locationLngController.text = location['coordinates'].longitude.toString();
     _locationMaxLeaveController.text = location['max_leave'].toString();
@@ -317,7 +317,7 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                 ListTile(
                   title: Text(location['name']),
                   subtitle: Text(
-                      'Code: ${location['code']}\nCoordinates: ${location['coordinates'].latitude}, ${location['coordinates'].longitude}\nMax Leave: ${location['max_leave']}\nHoliday: ${location['holiday']}\nWorking Days: ${location['working_days']}'),
+                      'prefix: ${location['prefix']}\nCoordinates: ${location['coordinates'].latitude}, ${location['coordinates'].longitude}\nMax Leave: ${location['max_leave']}\nHoliday: ${location['holiday']}\nWorking Days: ${location['working_days']}'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
@@ -341,7 +341,7 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                 decoration: const InputDecoration(labelText: 'Location Name'),
               ),
               TextField(
-                controller: _locationCodeController,
+                controller: _locationPrefixController,
                 decoration: const InputDecoration(labelText: 'Location Code'),
               ),
               TextField(

@@ -126,7 +126,7 @@ class RejectedEmployeeDetailsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Employee Details'),
+        title: const Text('Details'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

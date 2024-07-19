@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<!-- <key>NSContactsUsageDescription</key>
+<string>We need access to your contacts for SMS functionality.</string> -->
 	<key>CFBundleDisplayName</key>
 	<string>Ooriba</string>
 	<key>CFBundleExecutable</key>

@@ -316,25 +316,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 _showRegisteredEmployees(context);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.time_to_leave),
-              title: const Text('Leave'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to Leave Page
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.access_time),
-              title: const Text('Attendance'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => DatePickerButton()),
-                );
-              },
-            ),
+            // ListTile(
+            //   leading: const Icon(Icons.time_to_leave),
+            //   title: const Text('Leave'),
+            //   onTap: () {
+            //     Navigator.pop(context);
+            //     // Navigate to Leave Page
+            //   },
+            // ),
+            // ListTile(
+            //   leading: const Icon(Icons.access_time),
+            //   title: const Text('Attendance'),
+            //   onTap: () {
+            //     Navigator.pop(context);
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(builder: (context) => DatePickerButton()),
+            //     );
+            //   },
+            // ),
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Settings'),

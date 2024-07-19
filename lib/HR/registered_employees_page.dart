@@ -1,5 +1,11 @@
+import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:ooriba/services/admin/department_service.dart';
+import 'package:ooriba/services/designation_service.dart';
 
 class RegisteredEmployeesPage extends StatefulWidget {
   const RegisteredEmployeesPage({super.key});
@@ -96,22 +102,24 @@ class EmployeeCard extends StatelessWidget {
                 //   ),
                 // ),
                 const SizedBox(width: 16.0),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      '${data['firstName']} ${data['lastName']}',
-                      style: const TextStyle(
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.bold,
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        '${data['firstName']} ${data['lastName']}',
+                        style: const TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4.0),
-                    Text('Phone: ${data['phoneNo']}'),
-                    Text('Email: ${data['email']}'),
-                    Text('Employee Type: ${data['employeeType']}'),
-                  ],
-                ),
+                      const SizedBox(height: 4.0),
+                      Text('Phone: ${data['phoneNo']}'),
+                      Text('Email: ${data['email']}'),
+                      Text('Employee Type: ${data['employeeType']}'),
+                    ],
+                  ),
+                )
               ],
             ),
             const SizedBox(height: 16.0),
@@ -155,7 +163,6 @@ class EmployeeDetailsDialog extends StatefulWidget {
 
 class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
   bool _isEditing = false;
-  List<String> _locations = [];
 
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
@@ -184,15 +191,15 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
   String _selectedEmployeeType = '';
 
   final Map<String, String> _validationErrors = {};
+  final DesignationService _designationService = DesignationService();
+  final DepartmentService _departmentService = DepartmentService();
+
+  List<String> _departments = [];
+  List<String> _designations = [];
 
   @override
   void initState() {
     super.initState();
-    _initializeControllers();
-    _fetchLocations();
-  }
-
-  void _initializeControllers() {
     _firstNameController =
         TextEditingController(text: widget.data['firstName']);
     _lastNameController = TextEditingController(text: widget.data['lastName']);
@@ -227,14 +234,16 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
     _selectedStatus = widget.data['status'] ?? '';
     _selectedRole = widget.data['role'] ?? '';
     _selectedEmployeeType = widget.data['employeeType'] ?? '';
+
+    _fetchData();
   }
 
-  Future<void> _fetchLocations() async {
-    final QuerySnapshot snapshot =
-        await FirebaseFirestore.instance.collection('Locations').get();
-    final locations = snapshot.docs.map((doc) => doc.id).toList();
+  Future<void> _fetchData() async {
+    final departments = await _departmentService.getDepartments();
+    final designations = await _designationService.getDesignations();
     setState(() {
-      _locations = locations;
+      _departments = departments;
+      _designations = designations;
     });
   }
 
@@ -302,7 +311,7 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
       _validationErrors['password'] =
           'Password must be at least 8 characters long.';
     } else if (!RegExp(
-            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]')
+            r'^(?=.[a-z])(?=.[A-Z])(?=.\d)(?=.[@$!%?&])[A-Za-z\d@$!%?&]')
         .hasMatch(password)) {
       _validationErrors['password'] =
           'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.';
@@ -346,6 +355,36 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
     return _validationErrors.isEmpty;
   }
 
+  Future<void> _selectImage(
+      {required ImageSource source, required String field}) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+
+    if (pickedFile != null) {
+      final file = File(pickedFile.path);
+      final fileName = path.basename(file.path);
+      final destination = 'employee_images/$fileName';
+
+      try {
+        final ref = FirebaseStorage.instance.ref(destination);
+        await ref.putFile(file);
+        final downloadURL = await ref.getDownloadURL();
+
+        setState(() {
+          if (field == 'dpImageUrl') {
+            _dpImageUrlController.text = downloadURL;
+          } else if (field == 'aadharImageUrl') {
+            _aadharImageUrlController.text = downloadURL;
+          } else if (field == 'supportUrl') {
+            _supportUrlController.text = downloadURL;
+          }
+        });
+      } catch (e) {
+        // Handle errors
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -364,10 +403,24 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
               _buildRow('Permanent Address', _permanentAddressController),
               _buildRow('Residential Address', _residentialAddressController),
               _buildRow('Date of Birth', _dobController),
-              _buildRow('Profile Picture URL', _dpImageUrlController),
-              _buildRow('Supporting Document URL', _supportUrlController),
-              _buildRow('Aadhar Number', _aadharNoController),
-              _buildRow('Aadhar Image URL', _aadharImageUrlController),
+              const SizedBox(height: 8.0),
+              _buildAttachmentRow(
+                label: 'Profile Image',
+                controller: _dpImageUrlController,
+                field: 'dpImageUrl',
+              ),
+              const SizedBox(height: 8.0),
+              _buildAttachmentRow(
+                label: 'Aadhaar Image',
+                controller: _aadharImageUrlController,
+                field: 'aadharImageUrl',
+              ),
+              const SizedBox(height: 8.0),
+              _buildAttachmentRow(
+                label: 'Supporting Document',
+                controller: _supportUrlController,
+                field: 'supportUrl',
+              ),
               _buildRow('Joining Date', _joiningDateController),
               _buildRow('employeeId', _employeeIdController),
               _buildRow('Bank Name', _bankNameController),
@@ -387,9 +440,11 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
                 'Technician',
                 'Executive'
               ]),
-              _buildDropdown('Location', _selectedLocation, _locations),
+              _buildDropdown('Location', _selectedLocation,
+                  ['Jeypore', 'Berhampur', 'Rayagada']),
               _buildDropdown('Status', _selectedStatus, ['Active', 'Inactive']),
-              _buildDropdown('Role', _selectedRole, ['Standard', 'HR']),
+              _buildDropdown(
+                  'Role', _selectedRole, ['Standard', 'HR', 'SiteManager']),
               _buildDropdown('Employee Type', _selectedEmployeeType,
                   ['On-site', 'Off-site']),
               if (_validationErrors.isNotEmpty)
@@ -507,6 +562,39 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
     );
   }
 
+  Widget _buildAttachmentRow({
+    required String label,
+    required TextEditingController controller,
+    required String field,
+  }) {
+    return Row(
+      children: <Widget>[
+        ElevatedButton(
+          onPressed: () =>
+              _selectImage(source: ImageSource.gallery, field: field),
+          child: Text('Upload $label'),
+        ),
+        const SizedBox(width: 8.0),
+      ],
+    );
+  }
+
+  Widget _buildEditableTextField({
+    required TextEditingController controller,
+    required String label,
+    String? errorText,
+    bool obscureText = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        labelText: label,
+        errorText: errorText,
+      ),
+    );
+  }
+
   Widget _buildDropdown(
       String label, String selectedValue, List<String> options) {
     return Padding(
@@ -556,10 +644,10 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
       ),
     );
   }
+}
 
-  void main() {
-    runApp(const MaterialApp(
-      home: RegisteredEmployeesPage(),
-    ));
-  }
+void main() {
+  runApp(const MaterialApp(
+    home: RegisteredEmployeesPage(),
+  ));
 }
