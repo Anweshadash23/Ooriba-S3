@@ -18,37 +18,6 @@ class LeaveTypesService {
     }
   }
 
-  // Fetch detailed leave types with employee IDs and numbers
-  Future<Map<String, Map<String, int>>> fetchDetailedLeaveTypes() async {
-    try {
-      QuerySnapshot snapshot = await _leaveTypesCollection.get();
-      Map<String, Map<String, int>> leaveTypesDetails = {};
-
-      for (var doc in snapshot.docs) {
-        String leaveType = doc.id;
-        Map<String, int> employeeLeaveData = {};
-
-        // Check if the document data is not null
-        Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
-        if (data != null) {
-          data.forEach((key, value) {
-            // Assuming value is an integer representing the number of leave days
-            if (value is int) {
-              employeeLeaveData[key] = value;
-            }
-          });
-        }
-
-        leaveTypesDetails[leaveType] = employeeLeaveData;
-      }
-
-      return leaveTypesDetails;
-    } catch (e) {
-      print('Error fetching detailed leave types: $e');
-      return {};
-    }
-  }
-
   // Fetch employee data by ID
   Future<Map<String, dynamic>?> getEmployeeById(String employeeId) async {
     try {
@@ -66,34 +35,6 @@ class LeaveTypesService {
     } catch (e) {
       print(e);
       return null;
-    }
-  }
-
-  Future<DocumentSnapshot> fetchSickLeaveData() async {
-    return await _db.collection('LeaveTypes').doc('Sick Leave').get();
-  }
-
-  Future<bool> canRequestSickLeave(String employeeId) async {
-    try {
-      DocumentSnapshot doc = await fetchSickLeaveData();
-
-      if (doc.exists) {
-        Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
-        if (data != null && data.containsKey(employeeId)) {
-          int numberOfDays = data[employeeId];
-          return numberOfDays <
-              4; // Assuming 4 is the maximum allowed sick leave days
-        } else {
-          // If no data is found for the employee, treat numberOfDays as 0
-          return true;
-        }
-      } else {
-        // If the 'Sick Leave' document does not exist, allow the request
-        return true;
-      }
-    } catch (e) {
-      print('Error checking sick leave request: $e');
-      return false;
     }
   }
 

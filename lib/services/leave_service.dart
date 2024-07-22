@@ -3,6 +3,31 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class LeaveService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Get the current year as a string
+  String _getCurrentYear() {
+    return DateTime.now().year.toString();
+  }
+
+  // Get employee data by ID
+  Future<Map<String, dynamic>?> getEmployeeById(String employeeId) async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('Regemp')
+          .where('employeeId', isEqualTo: employeeId)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return snapshot.docs.first.data() as Map<String, dynamic>;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print(e);
+      return null;
+    }
+  }
+
   // Apply for leave
   Future<void> applyLeave({
     required String employeeId,
@@ -15,6 +40,90 @@ class LeaveService {
     try {
       String fromDateStr =
           fromDate != null ? fromDate.toIso8601String().split('T').first : '';
+      String currentYear = _getCurrentYear();
+
+      if (leaveType == 'Sick Leave') {
+        DocumentSnapshot leaveTypeDoc = await _firestore
+            .collection('LeaveTypes')
+            .doc('Sick Leave')
+            .collection(currentYear)
+            .doc(employeeId)
+            .get();
+
+        double maxLeave = 4.0; // Default max leave for sick leave
+        Map<String, dynamic>? leaveData =
+            leaveTypeDoc.data() as Map<String, dynamic>?;
+
+        if (leaveData != null && leaveData.containsKey('maxLeave')) {
+          maxLeave = leaveData['maxLeave'];
+        }
+
+        if (numberOfDays > maxLeave) {
+          throw Exception('Insufficient sick leave balance');
+        }
+
+        // Subtract the number of days from max leave
+        maxLeave -= numberOfDays;
+
+        // Update the LeaveTypes collection with the new max leave for the current year
+        await _firestore
+            .collection('LeaveTypes')
+            .doc('Sick Leave')
+            .collection(currentYear)
+            .doc(employeeId)
+            .set({
+          'maxLeave': maxLeave,
+          'leaveTaken': FieldValue.increment(numberOfDays),
+        }, SetOptions(merge: true));
+      } else if (leaveType == 'Earned Leave') {
+        Map<String, dynamic>? employeeData = await getEmployeeById(employeeId);
+
+        if (employeeData == null || !employeeData.containsKey('joiningDate')) {
+          throw Exception('Employee data not found or missing joining date');
+        }
+
+        DateTime joiningDate =
+            (employeeData['joiningDate'] as Timestamp).toDate();
+        DateTime currentDate = DateTime.now();
+        int monthsWorked = (currentDate.year - joiningDate.year) * 12 +
+            currentDate.month -
+            joiningDate.month;
+
+        double maxLeave = (monthsWorked * 1.0)
+            .clamp(0, 12); // Earned leaves based on months worked
+
+        DocumentSnapshot leaveTypeDoc = await _firestore
+            .collection('LeaveTypes')
+            .doc('Earned Leave')
+            .collection(currentYear)
+            .doc(employeeId)
+            .get();
+
+        Map<String, dynamic>? leaveData =
+            leaveTypeDoc.data() as Map<String, dynamic>?;
+
+        if (leaveData != null && leaveData.containsKey('maxLeave')) {
+          maxLeave = leaveData['maxLeave'];
+        }
+
+        if (numberOfDays > maxLeave) {
+          throw Exception('Insufficient earned leave balance');
+        }
+
+        // Subtract the number of days from max leave
+        maxLeave -= numberOfDays;
+
+        // Update the LeaveTypes collection with the new max leave for the current year
+        await _firestore
+            .collection('LeaveTypes')
+            .doc('Earned Leave')
+            .collection(currentYear)
+            .doc(employeeId)
+            .set({
+          'maxLeave': maxLeave,
+          'leaveTaken': FieldValue.increment(numberOfDays),
+        }, SetOptions(merge: true));
+      }
 
       await _firestore
           .collection('leave')
@@ -32,7 +141,7 @@ class LeaveService {
         'appliedAt': FieldValue.serverTimestamp(), // Add appliedAt field
       });
     } catch (e) {
-      print('Error applying leave: $e');
+      print('Cannot apply leave: $e');
       throw e;
     }
   }
@@ -44,6 +153,8 @@ class LeaveService {
     required bool isApproved,
   }) async {
     try {
+      String currentYear = _getCurrentYear();
+
       // Update the leave status in the request collection
       await _firestore
           .collection('leave')
@@ -66,6 +177,41 @@ class LeaveService {
       if (leaveDoc.exists) {
         Map<String, dynamic> leaveData = leaveDoc.data()!;
 
+        if (leaveData['leaveType'] == 'Sick Leave' ||
+            leaveData['leaveType'] == 'Earned Leave') {
+          String leaveType = leaveData['leaveType'];
+          DocumentSnapshot leaveTypeDoc = await _firestore
+              .collection('LeaveTypes')
+              .doc(leaveType)
+              .collection(currentYear)
+              .doc(employeeId)
+              .get();
+
+          double maxLeave =
+              leaveType == 'Sick Leave' ? 4.0 : 12.0; // Default max leave
+          Map<String, dynamic>? leaveTypeData =
+              leaveTypeDoc.data() as Map<String, dynamic>?;
+
+          if (leaveTypeData != null && leaveTypeData.containsKey('maxLeave')) {
+            maxLeave = leaveTypeData['maxLeave'];
+          }
+
+          if (!isApproved) {
+            // Add the number of days back to the max leave if the leave is denied
+            maxLeave += leaveData['numberOfDays'];
+
+            await _firestore
+                .collection('LeaveTypes')
+                .doc(leaveType)
+                .collection(currentYear)
+                .doc(employeeId)
+                .set({
+              'maxLeave': maxLeave,
+              'leaveTaken': FieldValue.increment(-leaveData['numberOfDays']),
+            }, SetOptions(merge: true));
+          }
+        }
+
         // If the leave is approved, copy the leave details to the "accept" collection
         if (isApproved) {
           await _firestore
@@ -84,15 +230,7 @@ class LeaveService {
             'approvedAt': FieldValue.serverTimestamp(), // Add approvedAt field
           });
 
-          // Update the LeaveTypes collection for the specific leave type
-          await _firestore
-              .collection('LeaveTypes')
-              .doc(leaveData['leaveType'])
-              .set({
-            employeeId: FieldValue.increment(1),
-            'numberOfDays': FieldValue.increment(leaveData['numberOfDays']),
-          }, SetOptions(merge: true));
-
+          // Update the LeaveCount collection for tracking approved leaves
           await _firestore.collection('LeaveCount').doc(employeeId).set({
             'fromDate': leaveData['fromDate'],
             'count': FieldValue.increment(
@@ -116,6 +254,7 @@ class LeaveService {
             'approvedAt': FieldValue.serverTimestamp(), // Add approvedAt field
           });
 
+          // Update the LeaveCount collection for tracking rejected leaves
           await _firestore.collection('LeaveCount').doc(employeeId).set({
             'fromDate': leaveData['fromDate'],
             'count': FieldValue.increment(

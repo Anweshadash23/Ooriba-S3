@@ -38,7 +38,6 @@ class _LeavePageState extends State<LeavePage> {
     numberOfDaysController.text = '0';
     _fetchEmployeeLeaveDates();
     _fetchLeaveTypes();
-    _fetchDetailedLeaveTypes();
   }
 
   Future<void> _fetchLeaveTypes() async {
@@ -49,52 +48,6 @@ class _LeavePageState extends State<LeavePage> {
         selectedLeaveType = leaveTypes[0]; // Set default to first leave type
       }
     });
-  }
-
-  Future<void> _fetchDetailedLeaveTypes() async {
-    Map<String, Map<String, int>> typesDetails =
-        await _leaveTypesService.fetchDetailedLeaveTypes();
-    setState(() {
-      leaveTypeDetails = typesDetails;
-    });
-  }
-
-  Future<DocumentSnapshot> fetchSickLeaveData() async {
-    return await FirebaseFirestore.instance
-        .collection('LeaveTypes')
-        .doc('Sick Leave')
-        .get();
-  }
-
-  Future<bool> canRequestSickLeave(String employeeId) async {
-    try {
-      DocumentSnapshot snapshot = await fetchSickLeaveData();
-
-      int maxSickLeaveDays = 4; // Default max sick leave days
-      if (snapshot.exists) {
-        maxSickLeaveDays =
-            (snapshot.data() as Map<String, dynamic>?)?['maxDays'] ?? 4;
-      }
-
-      // Fetch the total number of sick leave days already taken by the employee
-      List<Map<String, dynamic>> leaveRequests =
-          await _leaveService.fetchLeaveRequests(employeeId: employeeId);
-
-      // Calculate the total sick leave days taken by the employee
-      int totalSickLeaveDays = leaveRequests
-          .where((request) => request['leaveType'] == 'Sick Leave')
-          .fold(0, (sum, request) {
-        DateTime fromDate = (request['fromDate'] as Timestamp).toDate();
-        DateTime toDate = (request['toDate'] as Timestamp).toDate();
-        return sum + toDate.difference(fromDate).inDays + 1;
-      });
-
-      // Allow the request if the total sick leave days taken is less than the maximum allowed
-      return totalSickLeaveDays < maxSickLeaveDays;
-    } catch (e) {
-      print('Error checking sick leave request: $e');
-      return false;
-    }
   }
 
   void calculateDays() {
@@ -114,88 +67,26 @@ class _LeavePageState extends State<LeavePage> {
       try {
         double numberOfDays = double.parse(numberOfDaysController.text);
 
-        // Check if the leave type is "Sick Leave" and the number of days is more than 4
-        if (selectedLeaveType == 'Sick Leave' && numberOfDays > 4) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content:
-                    Text('Cannot request more than 4 days of sick leave.')),
-          );
-          return;
-        }
+        await _leaveService.applyLeave(
+          employeeId: widget.employeeId!,
+          leaveType: selectedLeaveType,
+          fromDate: dateFormat.parse(fromDateController.text),
+          toDate: dateFormat.parse(toDateController.text),
+          numberOfDays: numberOfDays,
+          leaveReason: leaveReasonController.text,
+        );
 
-        bool canRequest = true;
-        // If leave type is "Sick Leave," check if the employee can request more sick leave
-        if (selectedLeaveType == 'Sick Leave') {
-          canRequest = await canRequestSickLeave(widget.employeeId!);
-        }
-
-        // Check for eligible earned leave days
-        if (selectedLeaveType == 'Earned Leave') {
-          int eligibleLeaveDays = await _leaveTypesService
-              .calculateEligibleEarnedLeave(widget.employeeId!);
-          if (numberOfDays > eligibleLeaveDays) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text(
-                      'Cannot request more than $eligibleLeaveDays days of earned leave.')),
-            );
-            return;
-          }
-        }
-
-        if (canRequest) {
-          await _leaveService.applyLeave(
-            employeeId: widget.employeeId!,
-            leaveType: selectedLeaveType,
-            fromDate: dateFormat.parse(fromDateController.text),
-            toDate: dateFormat.parse(toDateController.text),
-            numberOfDays: numberOfDays,
-            leaveReason: leaveReasonController.text,
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Leave applied successfully')));
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Cannot request more sick leave.')));
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Leave applied successfully')),
+        );
       } catch (e) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed to apply leave: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Insufficient leave balance')),
+        );
       }
     }
   }
 
-  // Future<void> searchLeaveRequests() async {
-  //   try {
-  //     DateTime? fromDate = fromDateController.text.isNotEmpty
-  //         ? dateFormat.parse(fromDateController.text)
-  //         : null;
-  //     DateTime? toDate = toDateController.text.isNotEmpty
-  //         ? dateFormat.parse(toDateController.text)
-  //         : null;
-
-  //     // Fetch leave requests for the specific employeeId within the date range
-  //     List<Map<String, dynamic>> leaveRequests =
-  //         await _leaveService.fetchLeaveRequests(
-  //       employeeId: widget.employeeId!,
-  //       fromDate: fromDate,
-  //       toDate: toDate,
-  //     );
-
-  //     // Display the filtered leave requests in debug console
-  //     print('Filtered Leave Requests: $leaveRequests');
-
-  //     // Optionally, you can display the leave requests in UI as needed
-  //     // For simplicity, let's print them in the debug console
-  //     setState(() {
-  //       _filteredLeaveRequests = leaveRequests;
-  //     });
-  //   } catch (e) {
-  //     print('Error fetching leave requests: $e');
-  //     // Handle error as needed
-  //   }
-  // }
   void _showLeaveDetails(DateTime selectedDay) {
     final leaveDetails = _leaveDetailsMap[selectedDay];
     if (leaveDetails != null) {
@@ -304,62 +195,6 @@ class _LeavePageState extends State<LeavePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              // SizedBox(height: 1.0),
-              // if (leaveTypeDetails.isNotEmpty)
-              //   ...leaveTypeDetails.entries.map((entry) {
-              //     String leaveType = entry.key;
-              //     Map<String, int> employeeData = entry.value;
-              //     // Get the max number of days allowed for this leave type
-              //     int maxDays =
-              //         leaveType == 'Sick Leave' ? 4 : 12; // Adjust as needed
-
-              //     return Padding(
-              //       padding: const EdgeInsets.symmetric(vertical: 8.0),
-              //       child: Card(
-              //         margin: EdgeInsets.symmetric(vertical: 8.0),
-              //         child: Padding(
-              //           padding: EdgeInsets.all(8.0),
-              //           child: Column(
-              //             crossAxisAlignment: CrossAxisAlignment.start,
-              //             children: <Widget>[
-              //               Text(
-              //                 'Leave Type: $leaveType',
-              //                 style: TextStyle(fontWeight: FontWeight.bold),
-              //               ),
-              //               Padding(
-              //                 padding:
-              //                     const EdgeInsets.symmetric(vertical: 4.0),
-              //                 child: Row(
-              //                   mainAxisAlignment:
-              //                       MainAxisAlignment.spaceBetween,
-              //                   children: [
-              //                     Text(
-              //                       'Taken Leaves: ${employeeData.values.fold(0, (sum, leaves) => sum + leaves)}',
-              //                       style: TextStyle(fontSize: 12.0),
-              //                     ),
-              //                     Text(
-              //                       'Balance: ${maxDays - employeeData.values.fold(0, (sum, leaves) => sum + leaves)}',
-              //                       style: TextStyle(fontSize: 12.0),
-              //                     ),
-              //                   ],
-              //                 ),
-              //               ),
-              //             ],
-              //           ),
-              //         ),
-              //       ),
-              //     );
-              //   }).toList()
-              // else
-              //   Padding(
-              //     padding: const EdgeInsets.symmetric(vertical: 20.0),
-              //     child: Center(
-              //       child: Text(
-              //         'No leave type details available',
-              //         style: TextStyle(fontSize: 16.0),
-              //       ),
-              //     ),
-              //   ),
               SizedBox(height: 20.0),
               Container(
                 padding:
