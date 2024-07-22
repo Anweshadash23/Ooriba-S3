@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ooriba/services/admin/company_name_service.dart';
-import 'package:ooriba/services/admin/department_service.dart';
 import 'package:ooriba/services/admin/leave_type_service.dart';
 import 'package:ooriba/services/admin/logo_service.dart';
 import 'package:ooriba/services/designation_service.dart';
 import 'package:ooriba/services/location_service.dart';
 import 'package:provider/provider.dart';
+import '../services/admin/department_service.dart';
 
 class StandardSettingsPage extends StatefulWidget {
   @override
@@ -23,6 +23,8 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   final TextEditingController _locationMaxLeaveController =
       TextEditingController();
   final TextEditingController _locationWorkingDaysController =
+      TextEditingController();
+  final TextEditingController _locationRestrictedAttendanceRadiusController =
       TextEditingController();
   final TextEditingController _departmentController = TextEditingController();
   final TextEditingController _leaveTypeController = TextEditingController();
@@ -84,6 +86,7 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
           'max_leave': doc['max_leave'],
           'holiday': doc['holiday'],
           'working_days': doc['working_days'],
+          'restricted_radius': doc['restricted_radius'],
         };
       }).toList();
     });
@@ -131,6 +134,8 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
     double longitude = double.parse(_locationLngController.text);
     int maxLeave = int.parse(_locationMaxLeaveController.text);
     int workingDays = int.parse(_locationWorkingDaysController.text);
+    int restrictedRadius =
+        int.parse(_locationRestrictedAttendanceRadiusController.text);
 
     await _firestore.collection('Locations').doc(locationName).set({
       'prefix': prefix,
@@ -138,6 +143,7 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
       'max_leave': maxLeave,
       'holiday': _selectedHoliday,
       'working_days': workingDays,
+      'restricted_radius': restrictedRadius,
     });
 
     setState(() {
@@ -148,6 +154,7 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
         'max_leave': maxLeave,
         'holiday': _selectedHoliday,
         'working_days': workingDays,
+        'restricted_radius': restrictedRadius,
       });
       _locationNameController.clear();
       _locationPrefixController.clear();
@@ -155,6 +162,7 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
       _locationLngController.clear();
       _locationMaxLeaveController.clear();
       _locationWorkingDaysController.clear();
+      _locationRestrictedAttendanceRadiusController.clear();
       _selectedHoliday = 'Monday';
     });
   }
@@ -166,6 +174,8 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
     _locationLngController.text = location['coordinates'].longitude.toString();
     _locationMaxLeaveController.text = location['max_leave'].toString();
     _locationWorkingDaysController.text = location['working_days'].toString();
+    _locationRestrictedAttendanceRadiusController.text =
+        location['restricted_radius'].toString();
     _selectedHoliday = location['holiday'];
 
     setState(() {
@@ -174,10 +184,10 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   }
 
   Future<void> _deleteLocation(String name) async {
-    if (_locations.indexWhere((location) => location['name'] == name) < 3) {
-      _showImportantElementAlert();
-      return;
-    }
+    // if (_locations.indexWhere((location) => location['name'] == name) < 3) {
+    //   _showImportantElementAlert();
+    //   return;
+    // }
 
     await _firestore.collection('Locations').doc(name).delete();
 
@@ -198,10 +208,10 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   }
 
   Future<void> _deleteDepartment(String name) async {
-    if (_departments.indexOf(name) < 3) {
-      _showImportantElementAlert();
-      return;
-    }
+    // if (_departments.indexOf(name) < 3) {
+    //   _showImportantElementAlert();
+    //   return;
+    // }
 
     await _departmentService.deleteDepartment(name);
 
@@ -222,10 +232,10 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   }
 
   Future<void> _deleteLeaveType(String name) async {
-    if (_leaveTypes.indexOf(name) < 3) {
-      _showImportantElementAlert();
-      return;
-    }
+    // if (_leaveTypes.indexOf(name) < 3) {
+    //   _showImportantElementAlert();
+    //   return;
+    // }
 
     await _leaveTypeService.deleteLeaveType(name);
 
@@ -246,10 +256,10 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   }
 
   Future<void> _deleteDesignation(String name) async {
-    if (_designations.indexOf(name) < 3) {
-      _showImportantElementAlert();
-      return;
-    }
+    // if (_designations.indexOf(name) < 3) {
+    //   _showImportantElementAlert();
+    //   return;
+    // }
 
     await _designationService.deleteDesignation(name);
 
@@ -258,25 +268,25 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
     });
   }
 
-  void _showImportantElementAlert() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Cannot Delete'),
-          content: const Text('This element is already in use.'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // void _showImportantElementAlert() {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: const Text('Cannot Delete'),
+  //         content: const Text('This element is already in use.'),
+  //         actions: <Widget>[
+  //           TextButton(
+  //             child: const Text('OK'),
+  //             onPressed: () {
+  //               Navigator.of(context).pop();
+  //             },
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -317,7 +327,8 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                 ListTile(
                   title: Text(location['name']),
                   subtitle: Text(
-                      'prefix: ${location['prefix']}\nCoordinates: ${location['coordinates'].latitude}, ${location['coordinates'].longitude}\nMax Leave: ${location['max_leave']}\nHoliday: ${location['holiday']}\nWorking Days: ${location['working_days']}'),
+                      // 'Code: ${location['code']}\nCoordinates: ${location['coordinates'].latitude}, ${location['coordinates'].longitude}\nMax Leave: ${location['max_leave']}\nHoliday: ${location['holiday']}\nWorking Days: ${location['working_days']}\nRestricted Attendance Radius: ${location['restricted_radius']}'),
+                      'Code: ${location['prefix']}\nCoordinates: ${location['coordinates'].latitude}, ${location['coordinates'].longitude}\nMax Leave: ${location['max_leave']}\nHoliday: ${location['holiday']}\nWorking Days: ${location['working_days']}\nRestricted Attendance Radius: ${location['restricted_radius']}'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
@@ -326,12 +337,12 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                         onPressed: () {
                           _editLocation(location);
                         },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () {
-                          _deleteLocation(location['name']);
-                        },
+                        //),
+                        //IconButton(
+                        //  icon: const Icon(Icons.delete),
+                        //  onPressed: () {
+                        //    _deleteLocation(location['name']);
+                        //  },
                       ),
                     ],
                   ),
@@ -362,6 +373,11 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                 controller: _locationWorkingDaysController,
                 decoration: const InputDecoration(labelText: 'Working Days'),
               ),
+              TextField(
+                controller: _locationRestrictedAttendanceRadiusController,
+                decoration: const InputDecoration(
+                    labelText: 'Restricted Attendance Radius'),
+              ),
               DropdownButtonFormField(
                 value: _selectedHoliday,
                 onChanged: (String? newValue) {
@@ -391,12 +407,12 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
               for (var department in _departments)
                 ListTile(
                   title: Text(department),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      _deleteDepartment(department);
-                    },
-                  ),
+                  //trailing: IconButton(
+                  //  icon: const Icon(Icons.delete),
+                  //  onPressed: () {
+                  //    _deleteDepartment(department);
+                  //  },
+                  //),
                 ),
               TextField(
                 controller: _departmentController,
@@ -417,12 +433,12 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
               for (var leaveType in _leaveTypes)
                 ListTile(
                   title: Text(leaveType),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      _deleteLeaveType(leaveType);
-                    },
-                  ),
+                  //trailing: IconButton(
+                  //  icon: const Icon(Icons.delete),
+                  //  onPressed: () {
+                  //    _deleteLeaveType(leaveType);
+                  //  },
+                  //),
                 ),
               TextField(
                 controller: _leaveTypeController,
@@ -443,12 +459,12 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
               for (var designation in _designations)
                 ListTile(
                   title: Text(designation),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      _deleteDesignation(designation);
-                    },
-                  ),
+                  //trailing: IconButton(
+                  //  icon: const Icon(Icons.delete),
+                  //  onPressed: () {
+                  //    _deleteDesignation(designation);
+                  //  },
+                  //),
                 ),
               TextField(
                 controller: _designationController,
@@ -472,6 +488,9 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                   onTap: () async {
                     await logoService.pickLogo();
                     setState(() {});
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Logo uploaded')),
+                    );
                   },
                   child: logoService.logo != null
                       ? Image.file(

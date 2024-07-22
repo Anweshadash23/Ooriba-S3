@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:ooriba/HR/hr_dashboard_page.dart';
 import 'package:ooriba/firebase_options.dart';
 import 'package:ooriba/post_login_page.dart';
-import 'package:ooriba/services/admin/logo_service.dart';
+
 import 'package:ooriba/services/auth_service.dart';
 import 'package:ooriba/services/dark_mode.dart';
 import 'package:ooriba/services/forgot_pass_service.dart';
@@ -14,6 +14,7 @@ import 'package:ooriba/siteManager/siteManagerDashboard.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'Admin/admin_dashboard_page.dart'; // Import the admin.dart file
+import 'services/admin/logo_service.dart';
 import 'services/company_name_service.dart';
 
 // Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -173,11 +174,17 @@ class LoginPage extends StatelessWidget {
                                     width: 200,
                                     height: 190,
                                   )
-                                : Image.asset(
-                                    'assets/images/companyLogo.png',
-                                    width: 200,
-                                    height: 190,
-                                  ),
+                                : logoService.logoUrl != null
+                                    ? Image.network(
+                                        logoService.logoUrl!,
+                                        width: 200,
+                                        height: 190,
+                                      )
+                                    : Image.asset(
+                                        'assets/images/companyLogo.png',
+                                        width: 200,
+                                        height: 190,
+                                      ),
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -252,6 +259,17 @@ class LoginPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 20),
+                        // ElevatedButton(
+                        //   onPressed: () {
+                        //     Navigator.push(
+                        //       context,
+                        //       MaterialPageRoute(
+                        //         builder: (context) => AdminDashboardPage(),
+                        //       ),
+                        //     );
+                        //   },
+                        //   child: const Text('Admin'),
+                        // ),
                       ],
                     ),
                   ),
@@ -260,17 +278,6 @@ class LoginPage extends StatelessWidget {
             ),
           );
         },
-      ),
-      bottomNavigationBar: Container(
-        color: Color.fromARGB(255, 66, 66,
-            66), // Bottom navigation bar background color set to blue
-        padding: const EdgeInsets.all(0.0),
-        child: Text(
-          'Copyright © 2024 Ooriba motors Pvt Ltd,Ganjam Odisha',
-          style:
-              const TextStyle(color: Colors.white), // Text color set to white
-          textAlign: TextAlign.center,
-        ),
       ),
     );
   }
@@ -320,8 +327,6 @@ class LoginPage extends StatelessWidget {
     );
   }
 }
-
-
 
 
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:ooriba/services/retrieveDataByEmployeeId.dart';
+import 'dart:async';
 
 class ProvideattendancePage extends StatefulWidget {
   @override
@@ -15,6 +16,7 @@ class _ProvideattendancePageState extends State<ProvideattendancePage> {
   bool hasError = false;
   List<Map<String, dynamic>> allEmployees = [];
   Map<String, Map<String, dynamic>> checkInOutData = {};
+  Map<String, Timer?> autoCheckoutTimers = {};
 
   @override
   void initState() {
@@ -95,7 +97,24 @@ class _ProvideattendancePageState extends State<ProvideattendancePage> {
 
   Future<void> toggleCheckInCheckOut(String employeeId) async {
     DateTime now = DateTime.now();
-    await retrieveAllEmployee.toggleCheckInCheckOut(employeeId, now);
+    Map<String, dynamic> data = checkInOutData[employeeId] ?? {};
+
+    if (data['checkIn'] != null && data['checkOut'] == null) {
+      // Check out the employee
+      await retrieveAllEmployee.toggleCheckInCheckOut(employeeId, now);
+      autoCheckoutTimers[employeeId]?.cancel(); // Cancel any existing timer
+    } else {
+      // Check in the employee
+      await retrieveAllEmployee.toggleCheckInCheckOut(employeeId, now);
+      autoCheckoutTimers[employeeId] = Timer(Duration(hours: 9), () async {
+        await retrieveAllEmployee.toggleCheckInCheckOut(
+            employeeId, DateTime.now());
+        setState(() {
+          fetchAllLeaveRequests();
+        });
+      });
+    }
+
     setState(() {
       fetchAllLeaveRequests();
     });
@@ -204,6 +223,7 @@ class _ProvideattendancePageState extends State<ProvideattendancePage> {
 
   @override
   Widget build(BuildContext context) {
+    // <--- @override for build method added
     return Scaffold(
       appBar: AppBar(
         title: Text('Provide Attendance'),

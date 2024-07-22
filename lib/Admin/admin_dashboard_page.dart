@@ -358,18 +358,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.message),
-              title: const Text('Broadcast Message'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => BroadcastMessagePage()),
-                );
-              },
-            ),
+            // ListTile(
+            //   leading: const Icon(Icons.message),
+            //   title: const Text('Broadcast Message'),
+            //   onTap: () {
+            //     Navigator.pop(context);
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(
+            //           builder: (context) => BroadcastMessagePage()),
+            //     );
+            //   },
+            // ),
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Log Out'),

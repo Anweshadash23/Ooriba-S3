@@ -15,6 +15,7 @@ import 'package:ooriba/services/geo_service.dart';
 import 'package:ooriba/services/SiteManager/retrieveDataByEmail.dart'
     as retrieveDataByEmail;
 import 'package:ooriba/services/user.dart';
+import 'package:ooriba/services/location_service.dart';
 
 class Sitemanagerdashboard extends StatefulWidget {
   final String phoneNumber;
@@ -32,6 +33,7 @@ class _SitemanagerdashboardState extends State<Sitemanagerdashboard> {
   String? employeeName;
   String? employeePhoneNumber;
   String? dpImageUrl;
+  String? employeeType;
   DateTime? lastLoginTime;
   String? siteLocation;
   final UserFirestoreService firestoreService = UserFirestoreService();
@@ -47,6 +49,7 @@ class _SitemanagerdashboardState extends State<Sitemanagerdashboard> {
       EmployeeLocationService();
   final BroadcastService _broadcastService = BroadcastService();
   String? broadcastMessage;
+  final LocationService locationService = LocationService();
 
   @override
   void initState() {
@@ -91,27 +94,53 @@ class _SitemanagerdashboardState extends State<Sitemanagerdashboard> {
     });
 
     try {
-      // Assuming siteLocation has the format "latitude,longitude"
-      List<String> siteLocationParts = siteLocation!.split(',');
-      double siteLatitude = double.parse(siteLocationParts[0]);
-      double siteLongitude = double.parse(siteLocationParts[1]);
+      Position position = await locationService.determinePosition();
+      String Prefix = employeeId!.substring(0, 3);
 
-      Position position = await geoService.determinePosition();
-      bool withinRange =
-          await geoService.isWithin50m(position, siteLatitude, siteLongitude);
+      if (Prefix.isEmpty) {
+        setState(() {
+          isLoading = false;
+        });
+        Fluttertoast.showToast(msg: 'Invalid employee ID');
+        return;
+      }
 
-      setState(() {
-        isWithinRange = withinRange;
-        isLoading = false;
-      });
+      Map<String, dynamic> locationDetails =
+          await locationService.getLocationByPrefix(Prefix);
 
-      Fluttertoast.showToast(
-          msg: withinRange
-              ? "You are at the location"
-              : "You are not at the location");
+      if (locationDetails.isNotEmpty) {
+        GeoPoint coordinates = locationDetails['coordinates'];
+        double restrictedRadius =
+            (locationDetails['restricted_radius'] as num).toDouble();
+
+        print('Location Details: $locationDetails');
+        print('Coordinates: ${coordinates.latitude}, ${coordinates.longitude}');
+        print('Restricted Radius: $restrictedRadius');
+
+        bool withinRange = await locationService.isWithinRadius(
+            position, restrictedRadius, coordinates);
+
+        setState(() {
+          isWithinRange = withinRange;
+          isLoading = false;
+        });
+
+        Fluttertoast.showToast(
+          msg: employeeType != "Off-site"
+              ? (isWithinRange
+                  ? "You are within the location"
+                  : "You are away from the location")
+              : "",
+        );
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        Fluttertoast.showToast(msg: 'Location details not found');
+      }
     } catch (e) {
       print(e);
-      Fluttertoast.showToast(msg: 'you are not at location');
+      Fluttertoast.showToast(msg: 'Error determining location');
       setState(() {
         isLoading = false;
       });
@@ -387,14 +416,14 @@ class _SitemanagerdashboardState extends State<Sitemanagerdashboard> {
                 onTap: () {
                   // Handle Attendance tap
                 },
+                //),
+                //ListTile(
+                //  leading: Icon(Icons.settings),
+                //  title: Text('Settings'),
+                //  onTap: () {
+                //    // Handle Settings tap
+                //  },
               ),
-              // ListTile(
-              //   leading: Icon(Icons.settings),
-              //   title: Text('Settings'),
-              //   onTap: () {
-              //     // Handle Settings tap
-              //   },
-              // ),
               ListTile(
                 leading: Icon(Icons.logout),
                 title: Text('Logout'),
@@ -423,7 +452,7 @@ class _SitemanagerdashboardState extends State<Sitemanagerdashboard> {
                   //         );
                   //       },
                   //       child: Text('Register Face'),
-                  //     ),
+                  //     )
                   //   ),
                   if (isWithinRange)
                     Padding(
@@ -465,24 +494,24 @@ class _SitemanagerdashboardState extends State<Sitemanagerdashboard> {
                             ),
                           ),
                         ),
-                        // Card(
-                        //   elevation: 5,
-                        //   color: Color.fromARGB(255, 222, 200, 174),
-                        //   child: ListTile(
-                        //     leading: Icon(Icons.message),
-                        //     title: const Text(
-                        //       'Global Communication',
-                        //       style: TextStyle(
-                        //           fontWeight: FontWeight.bold, fontSize: 25),
-                        //     ),
-                        //     subtitle: Column(
-                        //       crossAxisAlignment: CrossAxisAlignment.start,
-                        //       children: [
-                        //         Text(broadcastMessage!),
-                        //       ],
-                        //     ),
-                        //   ),
-                        // ),
+                        Card(
+                          elevation: 5,
+                          color: Color.fromARGB(255, 222, 200, 174),
+                          child: ListTile(
+                            leading: Icon(Icons.message),
+                            title: const Text(
+                              'Global Communication',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 25),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(broadcastMessage!),
+                              ],
+                            ),
+                          ),
+                        ),
 
                         // const Padding(
                         //   padding: EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),

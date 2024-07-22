@@ -14,6 +14,21 @@ class DepartmentService {
   }
 
   Future<void> deleteDepartment(String name) async {
-    await _firestore.collection('Departments').doc(name).delete();
+    bool isInUse = await _isElementInUse(name, 'department');
+
+    if (isInUse) {
+      throw Exception('Department is already in use');
+    } else {
+      await _firestore.collection('Departments').doc(name).delete();
+    }
+  }
+
+  Future<bool> _isElementInUse(String name, String field) async {
+    QuerySnapshot querySnapshot = await _firestore
+        .collection('Users')
+        .where(field, isEqualTo: name)
+        .get();
+
+    return querySnapshot.docs.isNotEmpty;
   }
 }

@@ -468,6 +468,7 @@
 // }
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:ooriba/HR/add_employees.dart';
 import 'package:ooriba/HR/employee_details_page.dart';
 import 'package:ooriba/HR/provideAttendance.dart';
 import 'package:ooriba/HR/registered_employees_page.dart';
@@ -585,6 +586,17 @@ class _HRDashboardPageState extends State<HRDashboardPage> {
                 );
               },
             ),
+            // ListTile(
+            //   leading: const Icon(Icons.time_to_leave),
+            //   title: const Text('Add employee'),
+            //   onTap: () {
+            //     Navigator.pop(context);
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(builder: (context) => AddEmployeePage()),
+            //     );
+            //   },
+            // ),
 
             ListTile(
               leading: const Icon(Icons.logout),

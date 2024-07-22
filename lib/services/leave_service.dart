@@ -31,11 +31,6 @@ class LeaveService {
         'isApproved': null, // Initialize isApproved as null
         'appliedAt': FieldValue.serverTimestamp(), // Add appliedAt field
       });
-
-      await _firestore.collection('LeaveCount').doc(employeeId).set({
-        'fromDate': fromDate,
-        'count': FieldValue.increment(1), // Initialize count as 1
-      }, SetOptions(merge: true));
     } catch (e) {
       print('Error applying leave: $e');
       throw e;
@@ -88,6 +83,15 @@ class LeaveService {
             'isApproved': true,
             'approvedAt': FieldValue.serverTimestamp(), // Add approvedAt field
           });
+
+          // Update the LeaveTypes collection for the specific leave type
+          await _firestore
+              .collection('LeaveTypes')
+              .doc(leaveData['leaveType'])
+              .set({
+            employeeId: FieldValue.increment(1),
+            'numberOfDays': FieldValue.increment(leaveData['numberOfDays']),
+          }, SetOptions(merge: true));
 
           await _firestore.collection('LeaveCount').doc(employeeId).set({
             'fromDate': leaveData['fromDate'],
@@ -259,7 +263,8 @@ class LeaveService {
   }
 
   // Fetch all leave dates for a specific employee
-  Future<List<DateTime>> fetchLeaveDatesByEmployeeId(String employeeId) async {
+  Future<Map<String, dynamic>?> fetchLeaveDetailsByDate(
+      String employeeId, DateTime date) async {
     try {
       QuerySnapshot querySnapshot = await _firestore
           .collection('leave')
@@ -267,24 +272,21 @@ class LeaveService {
           .collection(employeeId)
           .get();
 
-      List<DateTime> leaveDates = querySnapshot.docs
-          .map((doc) {
-            DateTime fromDate = (doc['fromDate'] as Timestamp).toDate();
-            DateTime toDate = (doc['toDate'] as Timestamp).toDate();
-            List<DateTime> dates = [];
-            for (var i = fromDate;
-                i.isBefore(toDate.add(Duration(days: 1)));
-                i = i.add(Duration(days: 1))) {
-              dates.add(i);
-            }
-            return dates;
-          })
-          .expand((element) => element)
-          .toList();
+      for (var doc in querySnapshot.docs) {
+        DateTime fromDate = (doc['fromDate'] as Timestamp).toDate();
+        DateTime toDate = (doc['toDate'] as Timestamp).toDate();
 
-      return leaveDates;
+        if (date.isAfter(fromDate.subtract(Duration(days: 1))) &&
+            date.isBefore(toDate.add(Duration(days: 1)))) {
+          // Return the leave details if the date falls within the range
+          return doc.data() as Map<String, dynamic>;
+        }
+      }
+
+      // Return null if no leave details found for the given date
+      return null;
     } catch (e) {
-      print('Error fetching leave dates: $e');
+      print('Error fetching leave details: $e');
       throw e;
     }
   }

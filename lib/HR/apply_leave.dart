@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ooriba/services/HR/leaveTypes.dart';
 
 class ApplyLeavePage extends StatefulWidget {
   @override
@@ -10,13 +11,9 @@ class ApplyLeavePage extends StatefulWidget {
 class _ApplyLeavePageState extends State<ApplyLeavePage> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final LeaveTypesService _leaveTypesService = LeaveTypesService();
 
-  List<String> leaveTypes = [
-    'Sick Leave',
-    'Casual Leave',
-    'Earned Leave',
-    'Partial Leave'
-  ];
+  List<String> leaveTypes = [];
   String selectedLeaveType = 'Sick Leave'; // Default value
 
   TextEditingController employeeIdSearchController = TextEditingController();
@@ -35,9 +32,20 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
   @override
   void initState() {
     super.initState();
+    _fetchLeaveTypes();
     numberOfDaysController.text = '0';
     employeeIdSearchController.addListener(() {
       _formatSearchText(employeeIdSearchController);
+    });
+  }
+
+  Future<void> _fetchLeaveTypes() async {
+    List<String> types = await _leaveTypesService.fetchLeaveTypes();
+    setState(() {
+      leaveTypes = types;
+      if (leaveTypes.isNotEmpty) {
+        selectedLeaveType = leaveTypes[0]; // Set default to first leave type
+      }
     });
   }
 
@@ -122,18 +130,28 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
       // First, split the query into parts to handle both first and last name search
       List<String> parts = query.split(' ');
 
-      // Query where either firstName or lastName matches the query
+      List<Map<String, dynamic>> employees = [];
+
+      // Search by employee ID first
       QuerySnapshot<Map<String, dynamic>> querySnapshot = await _firestore
           .collection('Regemp')
-          .where('firstName',
-              isEqualTo: parts[0]) // Search by first part as firstName
+          .where('employeeId', isEqualTo: query)
           .get();
 
-      List<Map<String, dynamic>> employees =
-          querySnapshot.docs.map((doc) => doc.data()).toList();
+      employees = querySnapshot.docs.map((doc) => doc.data()).toList();
 
+      // If no results, search by firstName
       if (employees.isEmpty) {
-        // If no results, try searching by the second part as lastName
+        querySnapshot = await _firestore
+            .collection('Regemp')
+            .where('firstName', isEqualTo: parts[0])
+            .get();
+
+        employees = querySnapshot.docs.map((doc) => doc.data()).toList();
+      }
+
+      // If still no results, search by lastName
+      if (employees.isEmpty) {
         querySnapshot = await _firestore
             .collection('Regemp')
             .where('lastName', isEqualTo: parts[0])

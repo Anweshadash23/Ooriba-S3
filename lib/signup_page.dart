@@ -423,11 +423,10 @@ import 'package:ooriba/employee_signup_success.dart';
 import 'package:ooriba/services/employeeService.dart';
 import 'dart:io';
 
-// Custom widget to display label with red star
 class LabelWithStar extends StatelessWidget {
   final String text;
 
-  const LabelWithStar({Key? key, required this.text}) : super(key: key);
+  const LabelWithStar({required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -435,15 +434,27 @@ class LabelWithStar extends StatelessWidget {
       children: [
         Text(
           text,
-          style: const TextStyle(
-            color: Colors.black,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const Text(
           '*',
-          style: TextStyle(color: Colors.red, fontSize: 16),
+          style: TextStyle(color: Colors.red),
         ),
       ],
+    );
+  }
+}
+
+class Label extends StatelessWidget {
+  final String text;
+
+  const Label({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(fontWeight: FontWeight.bold),
     );
   }
 }
@@ -686,10 +697,14 @@ class _SignUpPageState extends State<SignUpPage> {
                         },
                       ),
                       const SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Label(text: 'Middle Name'),
+                      ),
+                      const SizedBox(height: 20),
                       TextFormField(
                         controller: _middleName,
                         decoration: const InputDecoration(
-                          labelText: 'Middle Name',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -724,10 +739,14 @@ class _SignUpPageState extends State<SignUpPage> {
                         },
                       ),
                       const SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Label(text: 'Email ID'),
+                      ),
+                      const SizedBox(height: 20),
                       TextFormField(
                         controller: _email,
                         decoration: const InputDecoration(
-                          labelText: 'Email ID',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -858,10 +877,14 @@ class _SignUpPageState extends State<SignUpPage> {
                         ],
                       ),
                       const SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Label(text: 'PAN Number'),
+                      ),
+                      const SizedBox(height: 20),
                       TextFormField(
                         controller: _panNo,
                         decoration: const InputDecoration(
-                          labelText: 'PAN Number',
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {

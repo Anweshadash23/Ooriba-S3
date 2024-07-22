@@ -18,6 +18,7 @@ import 'package:ooriba/services/retrieveDataByEmail.dart'
 import 'package:ooriba/services/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ooriba/services/employee_location_service.dart';
+import 'package:ooriba/services/location_service.dart';
 
 class PostLoginPage extends StatefulWidget {
   final String phoneNumber;
@@ -50,9 +51,10 @@ class _PostLoginPageState extends State<PostLoginPage> {
   bool isLoadingForLocation = false;
   final EmployeeLocationService employeeLocationService =
       EmployeeLocationService();
-  Timer? _autoCheckOutTimer;
+  //Timer? _autoCheckOutTimer;
   final BroadcastService _broadcastService = BroadcastService();
   String? broadcastMessage;
+  final LocationService locationService = LocationService();
 
   @override
   void initState() {
@@ -65,11 +67,11 @@ class _PostLoginPageState extends State<PostLoginPage> {
     _fetchMessage();
   }
 
-  @override
-  void dispose() {
-    _autoCheckOutTimer?.cancel();
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   _autoCheckOutTimer?.cancel();
+  //   super.dispose();
+  // }
 
   Future<void> _fetchMessage() async {
     String? message = await _broadcastService.getCurrentBroadcastMessage();
@@ -137,34 +139,53 @@ class _PostLoginPageState extends State<PostLoginPage> {
     });
 
     try {
-      Position position = await geoService.determinePosition();
+      Position position = await locationService.determinePosition();
+      String Prefix = employeeId!.substring(0, 3);
 
-      // Fetch location code from employee details
-      String? prefix = employeeId?.substring(
-          0, 2); // Assuming location code is the prefix of employeeId
+      if (Prefix.isEmpty) {
+        setState(() {
+          isLoading = false;
+        });
+        Fluttertoast.showToast(msg: 'Invalid employee ID');
+        return;
+      }
 
-      // Get the coordinates of the location from Firestore
-      Map<String, dynamic> locationCoordinates =
-          await geoService.getLocationCoordinates(prefix!);
+      Map<String, dynamic> locationDetails =
+          await locationService.getLocationByPrefix(Prefix);
 
-      bool withinRange = await geoService.isWithin50m(position,
-          locationCoordinates['latitude'], locationCoordinates['longitude']);
+      if (locationDetails.isNotEmpty) {
+        GeoPoint coordinates = locationDetails['coordinates'];
+        double restrictedRadius =
+            (locationDetails['restricted_radius'] as num).toDouble();
 
-      setState(() {
-        isWithinRange = withinRange;
-        isLoading = false;
-      });
+        print('Location Details: $locationDetails');
+        print('Coordinates: ${coordinates.latitude}, ${coordinates.longitude}');
+        print('Restricted Radius: $restrictedRadius');
 
-      Fluttertoast.showToast(
-        msg: employeeType != "Off-site"
-            ? (isWithinRange
-                ? "You are within the location"
-                : "You are away from the location")
-            : "",
-      );
+        bool withinRange = await locationService.isWithinRadius(
+            position, restrictedRadius, coordinates);
+
+        setState(() {
+          isWithinRange = withinRange;
+          isLoading = false;
+        });
+
+        Fluttertoast.showToast(
+          msg: employeeType != "Off-site"
+              ? (isWithinRange
+                  ? "You are within the location"
+                  : "You are not within the location")
+              : "you are away from the location",
+        );
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        Fluttertoast.showToast(msg: 'Location details not found');
+      }
     } catch (e) {
       print(e);
-      Fluttertoast.showToast(msg: 'You are not within the location');
+      Fluttertoast.showToast(msg: 'Error determining location');
       setState(() {
         isLoading = false;
       });
@@ -291,9 +312,9 @@ class _PostLoginPageState extends State<PostLoginPage> {
     await _saveLocalCheckInTime(now);
     await _clearLocalCheckInCheckOutTimes();
 
-    _autoCheckOutTimer = Timer(Duration(hours: 9), () {
-      _checkOut();
-    });
+    // _autoCheckOutTimer = Timer(Duration(hours: 9), () {
+    //   _checkOut();
+    // });
   }
 
   Future<void> _checkOut() async {
@@ -431,14 +452,14 @@ class _PostLoginPageState extends State<PostLoginPage> {
                 );
               },
             ),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Personal Information'),
-              onTap: () {
-                // Navigator.pop(context);
-                // navigateToPersonalInformation();
-              },
-            ),
+            // ListTile(
+            //     //  leading: Icon(Icons.person),
+            //     //  title: Text('Personal Information'),
+            //     //  onTap: () {
+            //     //    // Navigator.pop(context);
+            //     //    // navigateToPersonalInformation();
+            //     //  },
+            //     ),
             ListTile(
               leading: Icon(Icons.person),
               title: Text('Logout'),
@@ -615,7 +636,7 @@ class _PostLoginPageState extends State<PostLoginPage> {
                             title: const Text(
                               'Global Communication',
                               style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 25),
+                                  fontWeight: FontWeight.bold, fontSize: 20),
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
