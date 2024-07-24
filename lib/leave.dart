@@ -79,6 +79,9 @@ class _LeavePageState extends State<LeavePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Leave applied successfully')),
         );
+
+        // Fetch leave dates again to update the calendar
+        await _fetchEmployeeLeaveDates();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Insufficient leave balance')),
@@ -87,8 +90,9 @@ class _LeavePageState extends State<LeavePage> {
     }
   }
 
-  void _showLeaveDetails(DateTime selectedDay) {
-    final leaveDetails = _leaveDetailsMap[selectedDay];
+  void _showLeaveDetails(DateTime selectedDay) async {
+    final leaveDetails = await _leaveService.fetchLeaveDetailsByDate(
+        widget.employeeId!, selectedDay);
     if (leaveDetails != null) {
       showDialog(
         context: context,
@@ -107,8 +111,6 @@ class _LeavePageState extends State<LeavePage> {
                 Text('Number of Days: ${leaveDetails['numberOfDays']}'),
                 Text('Leave Reason: ${leaveDetails['leaveReason']}'),
                 Text('Approved: ${leaveDetails['isApproved'] ? 'Yes' : 'No'}'),
-                Text(
-                    'Approved At: ${leaveDetails['approvedAt'] != null ? DateFormat('dd-MM-yyyy').format((leaveDetails['approvedAt'] as Timestamp).toDate()) : 'N/A'}'),
               ],
             ),
             actions: <Widget>[
@@ -185,204 +187,238 @@ class _LeavePageState extends State<LeavePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Leave Application'),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0), // Reduced padding
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              SizedBox(height: 20.0),
-              Container(
-                padding:
-                    EdgeInsets.all(16.0), // Add padding inside the container
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey), // Border color
-                  borderRadius: BorderRadius.circular(8.0), // Rounded corners
-                  color: Colors.white, // Background color
-                ),
-                child: Column(
+        appBar: AppBar(
+          title: Text('Leave Application'),
+        ),
+        body: SingleChildScrollView(
+            padding: EdgeInsets.all(16.0), // Reduced padding
+            child: Form(
+              key: _formKey,
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    TextFormField(
-                      controller:
-                          TextEditingController(text: widget.employeeId),
-                      decoration: InputDecoration(
-                          label: _buildLabelWithStar('Employee ID')),
-                      enabled: false,
-                    ),
-                    SizedBox(height: 12.0), // Reduced spacing
-                    DropdownButtonFormField(
-                      value: selectedLeaveType,
-                      items: leaveTypes.map((String type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedLeaveType = value.toString();
-                          numberOfDaysController.text = '0';
-                        });
-                      },
-                      decoration: InputDecoration(
-                          label: _buildLabelWithStar('Leave Type')),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select a leave type';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 12.0), // Reduced spacing
-                    TextFormField(
-                      controller: fromDateController,
-                      decoration: InputDecoration(
-                          label: _buildLabelWithStar('From Date')),
-                      readOnly: true,
-                      onTap: () async {
-                        DateTime? pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate:
-                              DateTime.now().subtract(Duration(days: 365)),
-                          lastDate: DateTime.now().add(Duration(days: 365)),
-                        );
-                        if (pickedDate != null) {
-                          setState(() {
-                            fromDateController.text =
-                                dateFormat.format(pickedDate);
-                            calculateDays();
-                          });
-                        }
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select a from date';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 12.0), // Reduced spacing
-                    TextFormField(
-                      controller: toDateController,
-                      decoration: InputDecoration(
-                          label: _buildLabelWithStar('To Date')),
-                      readOnly: true,
-                      onTap: () async {
-                        DateTime? pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate:
-                              DateTime.now().subtract(Duration(days: 365)),
-                          lastDate: DateTime.now().add(Duration(days: 365)),
-                        );
-                        if (pickedDate != null) {
-                          setState(() {
-                            toDateController.text =
-                                dateFormat.format(pickedDate);
-                            calculateDays();
-                          });
-                        }
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select a to date';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 12.0), // Reduced spacing
-                    TextFormField(
-                      controller: numberOfDaysController,
-                      decoration: InputDecoration(labelText: 'Number of Days'),
-                      readOnly: true,
-                    ),
-                    SizedBox(height: 12.0), // Reduced spacing
-                    TextFormField(
-                      controller: leaveReasonController,
-                      maxLines: null,
-                      keyboardType: TextInputType.multiline,
-                      decoration: InputDecoration(labelText: 'Leave Reason'),
-                    ),
-                    SizedBox(height: 12.0),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: _applyLeave,
-                        child: Text('Apply'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: Size(120, 40),
-                        ),
+                    SizedBox(height: 20.0),
+                    Container(
+                      padding: EdgeInsets.all(
+                          16.0), // Add padding inside the container
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey), // Border color
+                        borderRadius:
+                            BorderRadius.circular(8.0), // Rounded corners
+                        color: Colors.white, // Background color
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          TextFormField(
+                            controller:
+                                TextEditingController(text: widget.employeeId),
+                            decoration: InputDecoration(
+                                label: _buildLabelWithStar('Employee ID')),
+                            enabled: false,
+                          ),
+                          SizedBox(height: 12.0), // Reduced spacing
+                          DropdownButtonFormField(
+                            value: selectedLeaveType,
+                            items: leaveTypes.map((String type) {
+                              return DropdownMenuItem(
+                                value: type,
+                                child: Text(type),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedLeaveType = value.toString();
+                                numberOfDaysController.text = '0';
+                              });
+                            },
+                            decoration: InputDecoration(
+                                label: _buildLabelWithStar('Leave Type')),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select a leave type';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 12.0), // Reduced spacing
+                          TextFormField(
+                            controller: fromDateController,
+                            decoration: InputDecoration(
+                                label: _buildLabelWithStar('From Date')),
+                            readOnly: true,
+                            onTap: () async {
+                              DateTime? pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime.now()
+                                    .subtract(Duration(days: 365)),
+                                lastDate:
+                                    DateTime.now().add(Duration(days: 365)),
+                              );
+                              if (pickedDate != null) {
+                                setState(() {
+                                  fromDateController.text =
+                                      dateFormat.format(pickedDate);
+                                  calculateDays();
+                                });
+                              }
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select a from date';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 12.0), // Reduced spacing
+                          TextFormField(
+                            controller: toDateController,
+                            decoration: InputDecoration(
+                                label: _buildLabelWithStar('To Date')),
+                            readOnly: true,
+                            onTap: () async {
+                              DateTime? pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime.now()
+                                    .subtract(Duration(days: 365)),
+                                lastDate:
+                                    DateTime.now().add(Duration(days: 365)),
+                              );
+                              if (pickedDate != null) {
+                                setState(() {
+                                  toDateController.text =
+                                      dateFormat.format(pickedDate);
+                                  calculateDays();
+                                });
+                              }
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select a to date';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 12.0), // Reduced spacing
+                          TextFormField(
+                            controller: numberOfDaysController,
+                            decoration:
+                                InputDecoration(labelText: 'Number of Days'),
+                            readOnly: true,
+                          ),
+                          SizedBox(height: 12.0), // Reduced spacing
+                          TextFormField(
+                            controller: leaveReasonController,
+                            maxLines: null,
+                            keyboardType: TextInputType.multiline,
+                            decoration:
+                                InputDecoration(labelText: 'Leave Reason'),
+                          ),
+                          SizedBox(height: 12.0),
+                          Center(
+                            child: ElevatedButton(
+                              onPressed: _applyLeave,
+                              child: Text('Apply'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(120, 40),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20.0),
-              TableCalendar(
-                focusedDay: _focusedDay,
-                firstDay: DateTime(2000),
-                lastDay: DateTime(2100),
-                selectedDayPredicate: (day) {
-                  return isSameDay(_selectedDay, day);
-                },
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                    _showLeaveDetails(
-                        selectedDay); // Show leave details for the selected day
-                  });
-                },
-                calendarStyle: CalendarStyle(
-                  todayDecoration: BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                  ),
-                  selectedDecoration: BoxDecoration(
-                    color: Colors.orange,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                calendarBuilders: CalendarBuilders(
-                  defaultBuilder: (context, day, focusedDay) {
-                    bool isOnLeave = _employeeLeaveDates.any((leaveDate) =>
-                        leaveDate.year == day.year &&
-                        leaveDate.month == day.month &&
-                        leaveDate.day == day.day);
-                    if (isOnLeave) {
-                      return Container(
-                        margin: const EdgeInsets.all(6.0),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(color: Colors.white),
+                    SizedBox(height: 20.0),
+                    Container(
+                      padding: EdgeInsets.all(
+                          16.0), // Add padding inside the container
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey), // Border color
+                        borderRadius:
+                            BorderRadius.circular(8.0), // Rounded corners
+                        color: Colors.white, // Background color
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          TableCalendar(
+                            focusedDay: _focusedDay,
+                            firstDay: DateTime(2000),
+                            lastDay: DateTime(2100),
+                            selectedDayPredicate: (day) {
+                              return isSameDay(_selectedDay, day);
+                            },
+                            onDaySelected: (selectedDay, focusedDay) {
+                              setState(() {
+                                _selectedDay = selectedDay;
+                                _focusedDay = focusedDay;
+                                _showLeaveDetails(
+                                    selectedDay); // Show leave details for the selected day
+                              });
+                            },
+                            calendarStyle: CalendarStyle(
+                              todayDecoration: BoxDecoration(
+                                color: Colors.blue,
+                                shape: BoxShape.circle,
+                              ),
+                              selectedDecoration: BoxDecoration(
+                                color: Colors.orange,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            calendarBuilders: CalendarBuilders(
+                              defaultBuilder: (context, day, focusedDay) {
+                                bool isOnLeave = _employeeLeaveDates.any(
+                                    (leaveDate) =>
+                                        leaveDate.year == day.year &&
+                                        leaveDate.month == day.month &&
+                                        leaveDate.day == day.day);
+                                if (isOnLeave) {
+                                  return Container(
+                                    margin: const EdgeInsets.all(6.0),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '${day.day}',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return null;
+                              },
+                              markerBuilder: (context, date, events) {
+                                if (_employeeLeaveDates.contains(date)) {
+                                  return Positioned(
+                                    bottom: 1,
+                                    child: Container(
+                                      width: 7,
+                                      height: 7,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.blue,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return null;
+                              },
+                            ),
+                            headerStyle: HeaderStyle(
+                              formatButtonVisible: false,
+                              titleCentered: true,
+                              formatButtonShowsNext: false,
+                            ),
                           ),
-                        ),
-                      );
-                    }
-                    return null;
-                  },
-                ),
-                headerStyle: HeaderStyle(
-                  formatButtonVisible: false,
-                  titleCentered: true,
-                  formatButtonShowsNext: false,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+                        ],
+                      ),
+                    ),
+                  ]),
+            )));
   }
 
   void main() => runApp(MaterialApp(
