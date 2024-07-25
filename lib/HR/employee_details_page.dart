@@ -441,21 +441,6 @@ class _EmployeeDetailsPageState extends State<EmployeeDetailsPage> {
     return null;
   }
 
-  // String? _validatePassword(String? value) {
-  //   if (value == null || value.isEmpty) {
-  //     return 'Password is required';
-  //   }
-  //   if (value.length < 6) {
-  //     return 'minimum length 6';
-  //   }
-  //   if (!RegExp(
-  //           r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]')
-  //       .hasMatch(value)) {
-  //     return 'uppercase,lowercase,num,special character.';
-  //   }
-  //   return null;
-  // }
-
   String? _validateDateOfBirth(String? value) {
     if (value == null || value.isEmpty) {
       return 'Date of birth is required';

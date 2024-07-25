@@ -285,44 +285,37 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
     }
   }
 
-  Future<void> _showLeaveDetails() async {
-    String employeeId = employeeIdController.text;
-    String fromDateStr = fromDateController.text;
-    String toDateStr = toDateController.text;
+  Future<void> fetchLeaveDetails() async {
+    String employeeId = employeeIdController.text.trim();
+    DateTime fromDate = dateFormat.parse(fromDateController.text);
+    DateTime toDate = dateFormat.parse(toDateController.text);
 
-    if (employeeId.isNotEmpty &&
-        fromDateStr.isNotEmpty &&
-        toDateStr.isNotEmpty) {
-      try {
-        DateTime fromDate = dateFormat.parse(fromDateStr);
-        DateTime toDate = dateFormat.parse(toDateStr);
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('leave')
+          .doc('accept')
+          .collection(employeeId)
+          .where('fromDate', isGreaterThanOrEqualTo: fromDate)
+          .where('toDate', isLessThanOrEqualTo: toDate)
+          .get();
 
-        String fromDateFormatted = dateFormat.format(fromDate);
-        String toDateFormatted = dateFormat.format(toDate);
-
-        Map<String, dynamic>? details = await _leaveTypesService
-            .fetchLeaveByDate(employeeId, fromDateFormatted, toDateFormatted);
-
-        if (details != null) {
-          setState(() {
-            leaveDetails = details;
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content:
-                    Text('No leave details found for the specified dates.')),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error fetching leave details: $e')),
-        );
+      if (snapshot.docs.isNotEmpty) {
+        setState(() {
+          leaveDetails = snapshot.docs.first.data() as Map<String, dynamic>;
+        });
+      } else {
+        setState(() {
+          leaveDetails = null;
+        });
       }
-    } else {
+    } catch (e) {
+      setState(() {
+        leaveDetails = null;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Please enter employee ID, from date, and to date.')),
+          content: Text('Error fetching leave details: $e'),
+        ),
       );
     }
   }
@@ -368,241 +361,296 @@ class _ApplyLeavePageState extends State<ApplyLeavePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text('Leave Application'),
-        ),
-        body: SingleChildScrollView(
-          padding: EdgeInsets.all(16.0),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            TextFormField(
-              controller: employeeIdSearchController,
-              decoration: InputDecoration(
-                labelText: 'Search Employee ID or Name',
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: () async {
-                    if (employeeIdSearchController.text.isNotEmpty) {
-                      try {
-                        List<Map<String, dynamic>> results =
-                            await searchEmployees(
-                                employeeIdSearchController.text);
-                        setState(() {
-                          searchResults = results;
-                          showSearchResults = true;
-                        });
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content:
-                                Text('Failed to fetch search results: $e')));
-                      }
-                    }
-                  },
-                ),
+      appBar: AppBar(
+        title: Text('Leave Application'),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(color: Colors.grey),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: employeeIdSearchController,
+                    decoration: InputDecoration(
+                      labelText: 'Search Employee ID or Name',
+                      suffixIcon: IconButton(
+                        icon: Icon(Icons.search),
+                        onPressed: () async {
+                          if (employeeIdSearchController.text.isNotEmpty) {
+                            try {
+                              List<Map<String, dynamic>> results =
+                                  await searchEmployees(
+                                      employeeIdSearchController.text);
+                              setState(() {
+                                searchResults = results;
+                                showSearchResults = true;
+                              });
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: Text(
+                                      'Failed to fetch search results: $e')));
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12.0),
+                  _buildSearchResults(),
+                ],
               ),
             ),
             SizedBox(height: 20.0),
-            _buildSearchResults(),
-            if (!showSearchResults) ...[
-              Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextFormField(
-                      controller: employeeIdController,
-                      decoration: InputDecoration(
-                          label: _buildLabelWithStar('Employee ID')),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter an employee ID';
-                        }
-                        return null;
-                      },
+            Container(
+              padding: EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(color: Colors.grey),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: employeeIdController,
+                    decoration: InputDecoration(
+                      label: _buildLabelWithStar('Employee ID'),
                     ),
-                    SizedBox(height: 12.0),
-                    DropdownButtonFormField(
-                      value: selectedLeaveType,
-                      items: leaveTypes.map((String type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedLeaveType = value.toString();
-                          if (selectedLeaveType == 'Partial Leave') {
-                            numberOfDaysController.text = '0.5';
-                            fromDateController.text = '';
-                            toDateController.text = '';
-                          } else {
-                            numberOfDaysController.text = '0';
-                          }
-                        });
-                      },
-                      decoration: InputDecoration(
-                          label: _buildLabelWithStar('Leave Type')),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select a leave type';
-                        }
-                        return null;
-                      },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter an employee ID';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 12.0),
+                  DropdownButtonFormField(
+                    value: selectedLeaveType,
+                    items: leaveTypes.map((String type) {
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(type),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedLeaveType = value.toString();
+                        // Reset number of days and dates if necessary
+                        numberOfDaysController.text = '0';
+                        fromDateController.text = '';
+                        toDateController.text = '';
+                      });
+                    },
+                    decoration: InputDecoration(
+                      label: _buildLabelWithStar('Leave Type'),
                     ),
-                    SizedBox(height: 12.0),
-                    TextFormField(
-                      controller: fromDateController,
-                      decoration: InputDecoration(
-                        label: _buildLabelWithStar('From Date'),
-                        suffixIcon: IconButton(
-                          icon: Icon(Icons.calendar_today),
-                          onPressed: () async {
-                            DateTime? pickedDate = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime.now(),
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2101),
-                            );
-                            if (pickedDate != null) {
-                              setState(() {
-                                fromDateController.text =
-                                    dateFormat.format(pickedDate);
-                                calculateDays();
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select a from date';
-                        }
-                        return null;
-                      },
-                      readOnly: true,
-                    ),
-                    SizedBox(height: 12.0),
-                    if (selectedLeaveType != 'Partial Leave')
-                      TextFormField(
-                        controller: toDateController,
-                        decoration: InputDecoration(
-                          label: _buildLabelWithStar('To Date'),
-                          suffixIcon: IconButton(
-                            icon: Icon(Icons.calendar_today),
-                            onPressed: () async {
-                              DateTime? pickedDate = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime(2101),
-                              );
-                              if (pickedDate != null) {
-                                setState(() {
-                                  toDateController.text =
-                                      dateFormat.format(pickedDate);
-                                  calculateDays();
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select a to date';
-                          }
-                          return null;
-                        },
-                        readOnly: true,
-                      ),
-                    SizedBox(height: 12.0),
-                    TextFormField(
-                      controller: numberOfDaysController,
-                      decoration: InputDecoration(
-                        label: _buildLabelWithStar('Number of Days'),
-                        suffixIcon: Icon(Icons.event_note),
-                      ),
-                      readOnly: true,
-                    ),
-                    SizedBox(height: 12.0),
-                    TextFormField(
-                      controller: leaveReasonController,
-                      decoration: InputDecoration(label: Text('Leave Reason')),
-                    ),
-                    SizedBox(height: 20.0),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (_formKey.currentState!.validate()) {
-                          try {
-                            DateTime fromDate =
-                                dateFormat.parse(fromDateController.text);
-                            DateTime? toDate;
-                            if (toDateController.text.isNotEmpty) {
-                              toDate = dateFormat.parse(toDateController.text);
-                            }
-
-                            await applyLeave(
-                              employeeId: employeeIdController.text,
-                              leaveType: selectedLeaveType,
-                              fromDate: fromDate,
-                              toDate: toDate,
-                              numberOfDays:
-                                  double.parse(numberOfDaysController.text),
-                              leaveReason: leaveReasonController.text,
-                            );
-
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text('Leave applied successfully')));
-
-                            // Clear form fields
-                            employeeIdController.clear();
-                            fromDateController.clear();
-                            toDateController.clear();
-                            leaveReasonController.clear();
-                            numberOfDaysController.text = '0';
-
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a leave type';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 12.0),
+                  TextFormField(
+                    controller: fromDateController,
+                    decoration: InputDecoration(
+                      label: _buildLabelWithStar('From Date'),
+                      suffixIcon: IconButton(
+                        icon: Icon(Icons.calendar_today),
+                        onPressed: () async {
+                          DateTime? pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2101),
+                          );
+                          if (pickedDate != null) {
                             setState(() {
-                              leaveDetails =
-                                  null; // Clear previous leave details
+                              fromDateController.text =
+                                  dateFormat.format(pickedDate);
+                              calculateDays();
                             });
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text('Failed to apply leave: $e')));
                           }
-                        }
-                      },
-                      child: Text('Apply Leave'),
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _showLeaveDetails,
-                      child: Text('Details'),
-                    ),
-                    if (leaveDetails != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Leave Details:',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text('Employee ID: ${leaveDetails!['employeeId']}'),
-                            Text('Leave Type: ${leaveDetails!['leaveType']}'),
-                            Text(
-                                'From Date: ${dateFormat.format((leaveDetails!['fromDate'] as Timestamp).toDate())}'),
-                            Text(
-                                'To Date: ${dateFormat.format((leaveDetails!['toDate'] as Timestamp).toDate())}'),
-                            Text(
-                                'Number of Days: ${leaveDetails!['numberOfDays']}'),
-                            Text('Reason: ${leaveDetails!['leaveReason']}'),
-                          ],
-                        ),
+                        },
                       ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a from date';
+                      }
+                      return null;
+                    },
+                    readOnly: true,
+                  ),
+                  SizedBox(height: 12.0),
+                  TextFormField(
+                    controller: toDateController,
+                    decoration: InputDecoration(
+                      label: _buildLabelWithStar('To Date'),
+                      suffixIcon: IconButton(
+                        icon: Icon(Icons.calendar_today),
+                        onPressed: () async {
+                          DateTime? pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2101),
+                          );
+                          if (pickedDate != null) {
+                            setState(() {
+                              toDateController.text =
+                                  dateFormat.format(pickedDate);
+                              calculateDays();
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a to date';
+                      }
+                      return null;
+                    },
+                    readOnly: true,
+                  ),
+                  SizedBox(height: 12.0),
+                  TextFormField(
+                    controller: numberOfDaysController,
+                    decoration: InputDecoration(
+                      label: _buildLabelWithStar('Number of Days'),
+                      suffixIcon: Icon(Icons.event_note),
+                    ),
+                    readOnly: true,
+                  ),
+                  SizedBox(height: 12.0),
+                  TextFormField(
+                    controller: leaveReasonController,
+                    decoration: InputDecoration(label: Text('Leave Reason')),
+                  ),
+                  SizedBox(height: 20.0),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (_formKey.currentState!.validate()) {
+                        try {
+                          DateTime fromDate =
+                              dateFormat.parse(fromDateController.text);
+                          DateTime? toDate;
+                          if (toDateController.text.isNotEmpty) {
+                            toDate = dateFormat.parse(toDateController.text);
+                          }
+
+                          await applyLeave(
+                            employeeId: employeeIdController.text,
+                            leaveType: selectedLeaveType,
+                            fromDate: fromDate,
+                            toDate: toDate,
+                            numberOfDays:
+                                double.parse(numberOfDaysController.text),
+                            leaveReason: leaveReasonController.text,
+                          );
+
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('Leave applied successfully')));
+
+                          // Clear form fields
+                          employeeIdController.clear();
+                          fromDateController.clear();
+                          toDateController.clear();
+                          leaveReasonController.clear();
+                          numberOfDaysController.text = '0';
+
+                          setState(() {
+                            leaveDetails = null; // Clear previous leave details
+                          });
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('Failed to apply leave: $e')));
+                        }
+                      }
+                    },
+                    child: Text('Apply Leave'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(150, 40), // Adjust the button size
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: fetchLeaveDetails,
+                    child: Text('Details'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(150, 40), // Adjust the button size
+                    ),
+                  )
+                ],
+              ),
+            ),
+            SizedBox(height: 20.0),
+            if (leaveDetails != null) ...[
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Left side: Reason and Date Range
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${leaveDetails!['leaveReason']}',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '${dateFormat.format(leaveDetails!['fromDate'].toDate())} - ${dateFormat.format(leaveDetails!['toDate'].toDate())}',
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    // Right side: Leave Type and Number of Days
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${leaveDetails!['leaveType']}',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '${leaveDetails!['numberOfDays']} day(s)',
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ]
-          ]),
-        ));
+            ] else if (leaveDetails == null && showSearchResults) ...[
+              Text('No leave details found for the given dates.'),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -40,24 +40,32 @@ class LeaveTypesService {
     }
   }
 
-  Future<Map<String, dynamic>?> fetchLeaveByDate(
+  Future<List<Map<String, dynamic>>> fetchLeaveByDate(
       String employeeId, String fromDateStr, String toDateStr) async {
+    final dateFormat = DateFormat('dd-MM-yyyy');
+
     try {
-      DocumentSnapshot snapshot = await _firestore
+      DateTime fromDate = dateFormat.parse(fromDateStr);
+      DateTime toDate = dateFormat.parse(toDateStr);
+
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('leave')
           .doc('accept')
           .collection(employeeId)
-          .doc(fromDateStr)
+          .where('fromDate', isGreaterThanOrEqualTo: fromDate)
+          .where('toDate', isLessThanOrEqualTo: toDate)
           .get();
 
-      if (snapshot.exists) {
-        return snapshot.data() as Map<String, dynamic>?;
+      if (snapshot.docs.isNotEmpty) {
+        return snapshot.docs
+            .map((doc) => doc.data() as Map<String, dynamic>)
+            .toList();
       } else {
-        return null;
+        return [];
       }
     } catch (e) {
       print(e);
-      return null;
+      return [];
     }
   }
 
